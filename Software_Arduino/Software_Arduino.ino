@@ -22,9 +22,11 @@
 
   created 06 June 2016
   by Yerson Carrillo in collaboration with Miguel Angel Califa Urquiza
-  modified 14 January 2017
+  Modified 14 January 2017
   by Miguel Califa
   redesigned to redistribution
+  Modified 05 Febrary 2018
+  Update to Github Repository
 
 */
 
