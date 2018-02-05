@@ -14,7 +14,7 @@ Dronefenix is an open source project that seeks the implementation of a datalogg
   - Add gas sensor ccs 811 to allow detection of contaminants (05/02/2018)
 
 You can also:
-  - OObtain measurements of temperature, humidity, atmospheric pressure, heat index, GPS coordinates of the point where these data were measured.
+  - Obtain measurements of temperature, humidity, atmospheric pressure, heat index, GPS coordinates of the point where these data were measured.
   - Measure the degree of contamination. new!! 
 
 Through this implementation you will be able to quickly observe the status of your crops, constantly monitor a large area, among others. 
