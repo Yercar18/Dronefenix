@@ -32,7 +32,7 @@ And of course Dronefenix itself is open source with a https://github.com/Yercar1
 
 ### Installation
 
-Dillinger requires [Arduino ide](https://arduino.cc/)  to run.
+Dronefenix requires [Arduino ide](https://arduino.cc/)  to run.
 
 Install the libraries.
 
