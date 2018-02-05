@@ -14,7 +14,7 @@ Dronefenix is an open source project that seeks the implementation of a datalogg
   - Add gas sensor ccs 811 to allow detection of contaminants (05/02/2018)
 
 You can also:
-  - Obtener mediciones de temperatura, humedad, presion atmosferica, indice de calor, coordenadas GPS del punto en que se midieron estos datos.
+  - OObtain measurements of temperature, humidity, atmospheric pressure, heat index, GPS coordinates of the point where these data were measured.
   - Measure the degree of contamination. new!! 
 
 Through this implementation you will be able to quickly observe the status of your crops, constantly monitor a large area, among others. 
@@ -36,9 +36,11 @@ Dillinger requires [Arduino ide](https://arduino.cc/)  to run.
 
 Install the libraries.
 
-```sh
-To install a new library into your Arduino IDE you can use the Library Manager (available from IDE version 1.6.2). Open the IDE and click to the "Sketch" menu and then Include Library > Manage Libraries.
-```
+
+To install a new library into your Arduino IDE you can use the Library Manager (available from IDE version 1.6.2).
+Open the IDE and click to the "Sketch" menu and then Include Library > Manage Libraries.
+
+
 License
 ----
 
