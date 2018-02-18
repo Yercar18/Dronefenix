@@ -54,7 +54,6 @@ String fecha ;
 String itemSeparator = ","; //Item que separa los datos guardados en el .csv Por defecto es "," Comma Separated Value
 String defaultFileName = "datos"; // nombre del archivo por defecto
 String defaultFileExtension = ".csv";
-String StartFileMessage = "Temperatura barometrico"+itemSeparator+"Humedad"+itemSeparator+"Presion absoluta"+itemSeparator+"Indice de calor"+itemSeparator+"latitud"+itemSeparator+"Logitud"+itemSeparator+"Altitud"+itemSeparator+"CO2"+itemSeparator+"TVOC"+itemSeparator+"TEMPERATURA CCS"+itemSeparator+"Fecha";
 // Constantes
 
 const int ledWarning = 5 ; //** LED QUE INDICA ERRORES **//
@@ -127,18 +126,7 @@ void setup() {
     Serial.println(SD.exists(defaultFileName+defaultFileCounter+defaultFileExtension));  
     defaultFileCounter +=1;  
   }
-  Archivo = SD.open(defaultFileName+defaultFileCounter+defaultFileExtension, FILE_WRITE);
-  if (Archivo) {
-    Archivo.println(StartFileMessage);
-    Serial.println("EL ARCHIVO EN LA SD SE LLAMARA: "+defaultFileName+defaultFileCounter+defaultFileExtension);
-
-  } else {
-    digitalWrite(ledWarning, HIGH);
-    delay(500);
-    digitalWrite(ledWarning, LOW);
-    delay(500);
-  }
-  Archivo.close();
+  inicioDeAlmacenamiento(defaultFileName+defaultFileCounter+defaultFileExtension);// Esta funcion verifica la integridad del archivo y realiza la insecion de las caveceras
 
   // inicializacion del dht para medir temperatura y humedad relativa - prueba de errores en perifericos de medicion
 
@@ -160,7 +148,6 @@ void setup() {
     }
   }
 
-inicioDeAlmacenamiento();
 }
 // final del setup , hasta aqui todos los perifericos estan armados y preparados para actuar en el momento que se necesiten
 
@@ -230,10 +217,12 @@ void loop()
 }
 
 //funciones de usuario independientes , invocadas durante la ejecucion del loop
-
-void inicioDeAlmacenamiento(){
-  Archivo = SD.open("datos.csv", FILE_WRITE);
+void inicioDeAlmacenamiento(String fileNameAndExtension){
+  Archivo = SD.open(fileNameAndExtension, FILE_WRITE);  
+  Serial.println("EL ARCHIVO EN LA SD SE LLAMARA: "+fileNameAndExtension);
   if (Archivo) {
+    
+    Archivo.println("SEP="+itemSeparator);
     Archivo.print("------------------------------------------------ INICIO DE LA TOMA DE DATOS -------------------------------------------------");
     Archivo.println();
     
@@ -272,10 +261,16 @@ void inicioDeAlmacenamiento(){
   
 
     Archivo.print("Fecha/hora de la muestra");
-    Archivo.println(";");
+    Archivo.println(itemSeparator);
 
 
+  }else {
+    digitalWrite(ledWarning, HIGH);
+    delay(500);
+    digitalWrite(ledWarning, LOW);
+    delay(500);
   }
+  Archivo.close();
 }
 
 
@@ -320,7 +315,7 @@ void almacenarDatos(float flat2 , float flon2) {
   
 
     Archivo.print(fecha);
-    Archivo.println(";");
+    Archivo.println(itemSeparator);
 
 
 
