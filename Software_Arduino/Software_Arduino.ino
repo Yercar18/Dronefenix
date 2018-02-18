@@ -249,7 +249,7 @@ void inicioDeAlmacenamiento(String fileNameAndExtension){
     Archivo.print(itemSeparator);
 
     
-    Archivo.print("Nivel de CO2 PPB");
+    Archivo.print("Nivel de CO2 PPM");
     Archivo.print(itemSeparator);
     
     Archivo.print("Niveles de TVOC PPB");
