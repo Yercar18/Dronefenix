@@ -42,14 +42,21 @@
 #include "Adafruit_CCS811.h"
 
 //Variables globales - globale variables
-long consecutivo = 0;
-float hum, ic, alt;
-double temp, p;
-String fecha ;
 char status;
-double T, P, p0, a;
-float h, t, f, hif, hic;
 int co2, tvoc, tempCCS;
+int defaultFileCounter = 0 ; // Extension del archivo ejemplo datos0.csv
+double temp, p;
+double T, P, p0, a;
+float hum, ic, alt;
+float h, t, f, hif, hic;
+long consecutivo = 0;
+String fecha ;
+String itemSeparator = ","; //Item que separa los datos guardados en el .csv Por defecto es "," Comma Separated Value
+String defaultFileName = "datos"; // nombre del archivo por defecto
+String defaultFileExtension = ".csv";
+String StartFileMessage = "Temperatura barometrico"+itemSeparator+"Humedad"+itemSeparator+"Presion absoluta"+itemSeparator+"Indice de calor"+itemSeparator+"latitud"+itemSeparator+"Logitud"+itemSeparator+"Altitud"+itemSeparator+"CO2"+itemSeparator+"TVOC"+itemSeparator+"TEMPERATURA CCS"+itemSeparator+"Fecha";
+// Constantes
+
 const int ledWarning = 5 ; //** LED QUE INDICA ERRORES **//
 const int dispCam = A0; //Pin que dispara la camara para tomar una foto , Pin that triggers the camera to take a picture.
 const int gpsTxPin =  9;
@@ -115,10 +122,15 @@ void setup() {
   Serial.println("INIT OK "); // Esto lo puedes personalizar
 
   // deteccion de errores - intentar abrir el archivo para verificar que existe
-  Archivo = SD.open("datos.csv", FILE_WRITE);
+  while(SD.exists(defaultFileName+defaultFileCounter+defaultFileExtension)){
+    Serial.println("EXISTE: "+defaultFileName+defaultFileCounter+defaultFileExtension);
+    Serial.println(SD.exists(defaultFileName+defaultFileCounter+defaultFileExtension));  
+    defaultFileCounter +=1;  
+  }
+  Archivo = SD.open(defaultFileName+defaultFileCounter+defaultFileExtension, FILE_WRITE);
   if (Archivo) {
-    //Archivo.write("Temperatura barometrico ; Humedad ; Presion absoluta ; Indice de calor ; latitud ; Logitud ; Altitud ; fecha;");
-    Archivo.println(" ");
+    Archivo.println(StartFileMessage);
+    Serial.println("EL ARCHIVO EN LA SD SE LLAMARA: "+defaultFileName+defaultFileCounter+defaultFileExtension);
 
   } else {
     digitalWrite(ledWarning, HIGH);
@@ -226,36 +238,36 @@ void inicioDeAlmacenamiento(){
     Archivo.println();
     
     Archivo.print("Temperatura");
-    Archivo.print(";");
+    Archivo.print(itemSeparator);
 
     Archivo.print("Humedad");
-    Archivo.print(";");
+    Archivo.print(itemSeparator);
 
     Archivo.print("Presion");
-    Archivo.print(";");
+    Archivo.print(itemSeparator);
 
     Archivo.print("Indice de calor");
-    Archivo.print(";");
+    Archivo.print(itemSeparator);
 
 
     Archivo.print("Latitud");
-    Archivo.print(";");
+    Archivo.print(itemSeparator);
 
     Archivo.print("Longitud");
-    Archivo.print(";");
+    Archivo.print(itemSeparator);
 
     Archivo.print("Altitud");
-    Archivo.print(";");
+    Archivo.print(itemSeparator);
 
     
     Archivo.print("Nivel de CO2 PPB");
-    Archivo.print(";");
+    Archivo.print(itemSeparator);
     
     Archivo.print("Niveles de TVOC PPB");
-    Archivo.print(";");
+    Archivo.print(itemSeparator);
     
     Archivo.print("Temperatura reportada por el CCS");
-    Archivo.print(";");
+    Archivo.print(itemSeparator);
 
   
 
@@ -271,39 +283,39 @@ void almacenarDatos(float flat2 , float flon2) {
 
   //** CONSTANTES temp,hum,p,ic; **///
 
-  Archivo = SD.open("datos.csv", FILE_WRITE);
+  Archivo = SD.open(defaultFileName+defaultFileCounter+defaultFileExtension, FILE_WRITE);
   if (Archivo) {
     Archivo.print(temp);
-    Archivo.print(";");
+    Archivo.print(itemSeparator);
 
     Archivo.print(hum);
-    Archivo.print(";");
+    Archivo.print(itemSeparator);
 
     Archivo.print(p);
-    Archivo.print(";");
+    Archivo.print(itemSeparator);
 
     Archivo.print(ic);
-    Archivo.print(";");
+    Archivo.print(itemSeparator);
 
 
     Archivo.print(flat2, 6);
-    Archivo.print(";");
+    Archivo.print(itemSeparator);
 
     Archivo.print(flon2, 6);
-    Archivo.print(";");
+    Archivo.print(itemSeparator);
 
     Archivo.print(alt);
-    Archivo.print(";");
+    Archivo.print(itemSeparator);
 
     
     Archivo.print(co2);
-    Archivo.print(";");
+    Archivo.print(itemSeparator);
     
     Archivo.print(tvoc);
-    Archivo.print(";");
+    Archivo.print(itemSeparator);
     
     Archivo.print(tempCCS);
-    Archivo.print(";");
+    Archivo.print(itemSeparator);
 
   
 
