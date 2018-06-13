@@ -1,0 +1,2 @@
+Todas las pruebas han sido realizadas
+sobre una base de tiempo de 2 minutos.

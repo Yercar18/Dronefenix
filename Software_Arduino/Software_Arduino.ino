@@ -42,14 +42,20 @@
 #include "Adafruit_CCS811.h"
 
 //Variables globales - globale variables
-long consecutivo = 0;
-float hum, ic, alt;
-double temp, p;
-String fecha ;
 char status;
-double T, P, p0, a;
-float h, t, f, hif, hic;
 int co2, tvoc, tempCCS;
+int defaultFileCounter = 0 ; // Extension del archivo ejemplo datos0.csv
+double temp, p;
+double T, P, p0, a;
+float hum, ic, alt;
+float h, t, f, hif, hic;
+long consecutivo = 0;
+String fecha ;
+String itemSeparator = ","; //Item que separa los datos guardados en el .csv Por defecto es "," Comma Separated Value
+String defaultFileName = "datos"; // nombre del archivo por defecto
+String defaultFileExtension = ".csv";
+// Constantes
+
 const int ledWarning = 5 ; //** LED QUE INDICA ERRORES **//
 const int dispCam = A0; //Pin que dispara la camara para tomar una foto , Pin that triggers the camera to take a picture.
 const int gpsTxPin =  9;
@@ -115,18 +121,12 @@ void setup() {
   Serial.println("INIT OK "); // Esto lo puedes personalizar
 
   // deteccion de errores - intentar abrir el archivo para verificar que existe
-  Archivo = SD.open("datos.csv", FILE_WRITE);
-  if (Archivo) {
-    //Archivo.write("Temperatura barometrico ; Humedad ; Presion absoluta ; Indice de calor ; latitud ; Logitud ; Altitud ; fecha;");
-    Archivo.println(" ");
-
-  } else {
-    digitalWrite(ledWarning, HIGH);
-    delay(500);
-    digitalWrite(ledWarning, LOW);
-    delay(500);
+  while(SD.exists(defaultFileName+defaultFileCounter+defaultFileExtension)){
+    Serial.println("EXISTE: "+defaultFileName+defaultFileCounter+defaultFileExtension);
+    Serial.println(SD.exists(defaultFileName+defaultFileCounter+defaultFileExtension));  
+    defaultFileCounter +=1;  
   }
-  Archivo.close();
+  inicioDeAlmacenamiento(defaultFileName+defaultFileCounter+defaultFileExtension);// Esta funcion verifica la integridad del archivo y realiza la insecion de las caveceras
 
   // inicializacion del dht para medir temperatura y humedad relativa - prueba de errores en perifericos de medicion
 
@@ -148,7 +148,6 @@ void setup() {
     }
   }
 
-inicioDeAlmacenamiento();
 }
 // final del setup , hasta aqui todos los perifericos estan armados y preparados para actuar en el momento que se necesiten
 
@@ -218,52 +217,60 @@ void loop()
 }
 
 //funciones de usuario independientes , invocadas durante la ejecucion del loop
-
-void inicioDeAlmacenamiento(){
-  Archivo = SD.open("datos.csv", FILE_WRITE);
+void inicioDeAlmacenamiento(String fileNameAndExtension){
+  Archivo = SD.open(fileNameAndExtension, FILE_WRITE);  
+  Serial.println("EL ARCHIVO EN LA SD SE LLAMARA: "+fileNameAndExtension);
   if (Archivo) {
+    
+    Archivo.println("SEP="+itemSeparator);
     Archivo.print("------------------------------------------------ INICIO DE LA TOMA DE DATOS -------------------------------------------------");
     Archivo.println();
     
     Archivo.print("Temperatura");
-    Archivo.print(";");
+    Archivo.print(itemSeparator);
 
     Archivo.print("Humedad");
-    Archivo.print(";");
+    Archivo.print(itemSeparator);
 
     Archivo.print("Presion");
-    Archivo.print(";");
+    Archivo.print(itemSeparator);
 
     Archivo.print("Indice de calor");
-    Archivo.print(";");
+    Archivo.print(itemSeparator);
 
 
     Archivo.print("Latitud");
-    Archivo.print(";");
+    Archivo.print(itemSeparator);
 
     Archivo.print("Longitud");
-    Archivo.print(";");
+    Archivo.print(itemSeparator);
 
     Archivo.print("Altitud");
-    Archivo.print(";");
+    Archivo.print(itemSeparator);
 
     
-    Archivo.print("Nivel de CO2 PPB");
-    Archivo.print(";");
+    Archivo.print("Nivel de CO2 PPM");
+    Archivo.print(itemSeparator);
     
     Archivo.print("Niveles de TVOC PPB");
-    Archivo.print(";");
+    Archivo.print(itemSeparator);
     
     Archivo.print("Temperatura reportada por el CCS");
-    Archivo.print(";");
+    Archivo.print(itemSeparator);
 
   
 
     Archivo.print("Fecha/hora de la muestra");
-    Archivo.println(";");
+    Archivo.println(itemSeparator);
 
 
+  }else {
+    digitalWrite(ledWarning, HIGH);
+    delay(500);
+    digitalWrite(ledWarning, LOW);
+    delay(500);
   }
+  Archivo.close();
 }
 
 
@@ -271,44 +278,44 @@ void almacenarDatos(float flat2 , float flon2) {
 
   //** CONSTANTES temp,hum,p,ic; **///
 
-  Archivo = SD.open("datos.csv", FILE_WRITE);
+  Archivo = SD.open(defaultFileName+defaultFileCounter+defaultFileExtension, FILE_WRITE);
   if (Archivo) {
     Archivo.print(temp);
-    Archivo.print(";");
+    Archivo.print(itemSeparator);
 
     Archivo.print(hum);
-    Archivo.print(";");
+    Archivo.print(itemSeparator);
 
     Archivo.print(p);
-    Archivo.print(";");
+    Archivo.print(itemSeparator);
 
     Archivo.print(ic);
-    Archivo.print(";");
+    Archivo.print(itemSeparator);
 
 
     Archivo.print(flat2, 6);
-    Archivo.print(";");
+    Archivo.print(itemSeparator);
 
     Archivo.print(flon2, 6);
-    Archivo.print(";");
+    Archivo.print(itemSeparator);
 
     Archivo.print(alt);
-    Archivo.print(";");
+    Archivo.print(itemSeparator);
 
     
     Archivo.print(co2);
-    Archivo.print(";");
+    Archivo.print(itemSeparator);
     
     Archivo.print(tvoc);
-    Archivo.print(";");
+    Archivo.print(itemSeparator);
     
     Archivo.print(tempCCS);
-    Archivo.print(";");
+    Archivo.print(itemSeparator);
 
   
 
     Archivo.print(fecha);
-    Archivo.println(";");
+    Archivo.println(itemSeparator);
 
 
 
