@@ -9,8 +9,8 @@
 #define timeDelay 500
 #define ledStatus 13
 #define taraCCS811 400 //Cantidad de PPM considerado como umbral 0 o tara
-#define serialProMini2_TX 8
-#define serialProMini2_RX 9
+#define serialProMini2_TX 9
+#define serialProMini2_RX 8
 #define sep ","
 #define serialPrecision 2
 #define baudRateBase 9600 //To pc
@@ -32,15 +32,15 @@ SFE_BMP180 pressure;
 Adafruit_CCS811 ccs;
 
 void setup() {
+  //init pins
   pinMode(ledStatus,OUTPUT);
-  // put your setup code here, to run once:
-  while(!inicializacion() && intentos<5){
+  //init serial
+  Serial.begin(baudRateBase);
+  proMini2.begin(baudRateTransmit);
+  //init sensors
+  while(!inicializacion() && intentos<=5){
     //init
-    ledFlag = !ledFlag; //Cambio de estado (intermitente)
-    digitalWrite(ledStatus,!ledFlag);
-    delay(timeDelay);
-    intentos += 1;
-  }
+    }
   digitalWrite(ledStatus,HIGH); //ALL OK
 }
 
@@ -70,25 +70,34 @@ void publishData(){
   Serial.println(P,serialPrecision);
   
   //Publicacion en el puerto de comunicaciones con promini2
-  /*
-    proMini2.print(T,proMini2Precision);
+    proMini2.print(sendWord(String(T),6));
     proMini2.print(sep);
-    proMini2.print(t,proMini2Precision);
+    proMini2.print(sendWord(String(t),6));
     proMini2.print(sep);
-    proMini2.print(tempCCS,proMini2Precision);
+    proMini2.print(sendWord(String(tempCCS),6));
     proMini2.print(sep);
-    proMini2.print(h,proMini2Precision);
+    proMini2.print(sendWord(String(h),6));
     proMini2.print(sep);
-    proMini2.print(f,proMini2Precision);
+    proMini2.print(sendWord(String(f),6));
     proMini2.print(sep);
-    proMini2.print(tvoc,proMini2Precision);
+    proMini2.print(sendWord(String(tvoc),4));
     proMini2.print(sep);
-    proMini2.print(co2,proMini2Precision);
+    proMini2.print(sendWord(String(co2),4));
     proMini2.print(sep);
-    proMini2.print(P,proMini2Precision);
-    proMini2.print(sep);
-  */
+    proMini2.println(sendWord(String(P),7));
 
+}
+String sendWord(String value, int len){
+  int lenVal = value.length();
+  String outStr="";
+  if(lenVal<len){
+    int iteraciones = len - lenVal - 1 ;
+    for(int i= 0; i<=iteraciones;i++){
+      outStr.concat(String(0));
+    }
+    outStr.concat(value);
+  }
+  return outStr;
 }
 void readSensors(){
   //Lectura del DHT11
@@ -98,6 +107,7 @@ void readSensors(){
     if (isnan(h) || isnan(t) || isnan(f)) {
       Serial.println("fallo leyendo el sensor DHT11!");
       h = 0; t = 0; f = 0;
+      showError("DHT 11");
     }else{
       hif = dht.computeHeatIndex(f, h);
       hic = dht.computeHeatIndex(t, h, false);
@@ -109,7 +119,11 @@ void readSensors(){
       co2 = ccs.geteCO2() - taraCCS811;
       tvoc = ccs.getTVOC();
       tempCCS =  temp;
+    }else{
+      showError("CCS_811");
     }
+  }else{
+    showError("CCS_811");
   }
   //Lectura del BMP180
   statusInt = pressure.startTemperature();
@@ -123,14 +137,28 @@ void readSensors(){
       statusInt = pressure.getPressure(P, T);
       if (statusInt != 0){
         //Presion esta en la variable P
+      }else{
+        showError("BMP_180: presion");
       }
+    }else{
+      showError("BMP_180: Temperatura"); 
     }
- }  
+  }else{
+    showError("BMP_180: Init Lecture");  
+  }
 }
 
 boolean inicializacion(){
    Serial.println("--------------------------------------------------");
    statusFlag = true;
+    while (!Serial && intentos<=5) {
+      showError("Serial Computador");
+      ; // wait for serial port to connect. Needed for native USB port only
+    }
+    while (!proMini2 && intentos<=5) {
+      showError("Serial pro mini 2");
+      ; // wait for serial port to connect. Needed for native USB port only
+    }
    // inicializacion del dht para medir temperatura y humedad relativa - prueba de errores en perifericos de medicion
     dht.begin();
     delay(1);
@@ -139,7 +167,7 @@ boolean inicializacion(){
     t = dht.readTemperature();
     f = dht.readTemperature(true);
     if (isnan(h) || isnan(t) || isnan(f)) {
-      Serial.println("fallo leyendo el sensor DHT11!");
+      showError("DHT11");
       statusFlag = statusFlag && false;
     }else{
       Serial.println("DHT11 OK");
@@ -151,7 +179,7 @@ boolean inicializacion(){
       statusFlag = statusFlag && true;
     }else
     {
-      Serial.println("BMP180 FAIL");
+      showError("BMP_180");
       statusFlag = statusFlag && false;
     }
     //Comprobacion del ccs811
@@ -159,21 +187,21 @@ boolean inicializacion(){
         Serial.println("inicializa el CCS_811");
         statusFlag = statusFlag && true;
     }else{
-        Serial.println("CCS init Fail");
+        showError("CCS_811");
         statusFlag = statusFlag && false;
     }
-    Serial.begin(baudRateBase);
-    while (!Serial) {
-      Serial.println("Serial inBoard OK");
-      ; // wait for serial port to connect. Needed for native USB port only
-    }
-    proMini2.begin(baudRateTransmit);
-    //temporal Mientras desarrollo
-    //while (!proMini2) {
-      Serial.println("Serial Pro Mini2 OK");
-      ; // wait for serial port to connect. Needed for native USB port only
-    //}
-    Serial.println("in setup, "+intentos);
+    Serial.println("in setup, ");
     return statusFlag;
+}
+void showError(String sensor){
+  if(intentos>5) intentos = 0;
+  ledFlag = !ledFlag; //Cambio de estado (intermitente)
+    digitalWrite(ledStatus,!ledFlag);
+    delay(timeDelay);
+    intentos += 1;
+    Serial.print("Errores: ");
+    Serial.print(intentos);
+    Serial.print(" ,Fallo el sensor: ");
+    Serial.println(sensor);
 }
 
