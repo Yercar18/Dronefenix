@@ -6,16 +6,17 @@
 
 #define DHTTYPE DHT11   // DHT 11
 #define DHTPIN  3
-#define timeDelay 500
+#define timeDelay 50
 #define ledStatus 13
 #define taraCCS811 400 //Cantidad de PPM considerado como umbral 0 o tara
 #define serialProMini2_TX 9
 #define serialProMini2_RX 8
 #define sep ","
 #define serialPrecision 2
-#define baudRateBase 9600 //To pc
-#define baudRateTransmit 9600  //To Pro mini 2
-
+#define baudRateBase 115200 //To pc
+#define baudRateTransmit 115200  //To Pro mini 2
+#define startChar 'A' //Palabra de inicio "AXXXXZ"
+#define endChar 'Z' //Palabra de final "AXXXXXZ"
 
 bool statusFlag = false; //Bandera usada en las funciones
 bool ledFlag; //Bandera usada en los leds que flashean
@@ -51,25 +52,29 @@ void loop() {
 }
 void publishData(){
   //Publicacion en el puerto de programacion
-  Serial.print(T,serialPrecision);
-  Serial.print(sep);
-  Serial.print(t,serialPrecision);
-  Serial.print(sep);
-  Serial.print(tempCCS,serialPrecision);
-  Serial.print(sep);
-  Serial.print(h,serialPrecision);
-  Serial.print(sep);
-  Serial.print(f,serialPrecision);
-  Serial.print(sep);
-  Serial.print(tvoc,serialPrecision);
-  Serial.print(sep);
-  Serial.print(co2,serialPrecision);
-  Serial.print(sep);
-  Serial.print(co2,serialPrecision);
-  Serial.print(sep);
-  Serial.println(P,serialPrecision);
+    Serial.print(startChar);
+    Serial.print(sep);
+    Serial.print(sendWord(String(T),6));
+    Serial.print(sep);
+    Serial.print(sendWord(String(t),6));
+    Serial.print(sep);
+    Serial.print(sendWord(String(f),6));
+    Serial.print(sep);
+    Serial.print(sendWord(String(tempCCS),6));
+    Serial.print(sep);
+    Serial.print(sendWord(String(h),6));
+    Serial.print(sep);
+    Serial.print(sendWord(String(tvoc),4));
+    Serial.print(sep);
+    Serial.print(sendWord(String(co2),4));
+    Serial.print(sep);
+    Serial.print(sendWord(String(P),7));
+    Serial.print(sep);
+    Serial.println(endChar);
   
   //Publicacion en el puerto de comunicaciones con promini2
+    proMini2.print(startChar);
+    proMini2.print(sep);
     proMini2.print(sendWord(String(T),6));
     proMini2.print(sep);
     proMini2.print(sendWord(String(t),6));
@@ -84,8 +89,9 @@ void publishData(){
     proMini2.print(sep);
     proMini2.print(sendWord(String(co2),4));
     proMini2.print(sep);
-    proMini2.println(sendWord(String(P),7));
-
+    proMini2.print(sendWord(String(P),7));
+    proMini2.print(sep);
+    proMini2.println(endChar);
 }
 String sendWord(String value, int len){
   int lenVal = value.length();
@@ -96,6 +102,8 @@ String sendWord(String value, int len){
       outStr.concat(String(0));
     }
     outStr.concat(value);
+  }else{
+    outStr = value;
   }
   return outStr;
 }
