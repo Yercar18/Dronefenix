@@ -152,7 +152,7 @@ void readProMini1(){
           inputString += inputChar; //makes the string readString  
           count += 1;   
           if(inputChar==endChar || inputChar == '\n') {
-            inputString = inputString.substring(2,inputString.length()-2);// Este es el string de salida    
+            inputString = inputString.substring(2,inputString.length()-2) + itemSeparator;// Este es el string de salida    
             Serial.println(inputString);
             return;
           }
