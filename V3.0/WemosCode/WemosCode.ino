@@ -11,12 +11,14 @@ const char* password = "REPLACE_WITH_YOUR_PASSWORD";
 
 //Definitions
 #define SLAVE_ADDRESS 8 //Slave arduino ID
-#define chipSelect D4
+#define chipSelect 4 //D4
 #define bytes 100
 #define sep ','
 #define timeDelay 500
+#define ledWarning 13
 
 //variables
+int defaultFileCounter = 0;
 char t[bytes]={};
 File Archivo;
 String defaultFileName = "datos"; // nombre del archivo por defecto
@@ -29,6 +31,8 @@ WiFiServer server(80);
 void setup()
 {
   if(initModule()){Serial.println("card initialized.");};
+  pinMode(ledWarning,OUTPUT);
+  digitalWrite(ledWarning,LOW);
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
     Serial.print(".");
@@ -105,7 +109,6 @@ void webPage(String Data){
         char c = client.read();
         
         if (c == '\n' && blank_line) {
-            getTemperature();
             client.println("HTTP/1.1 200 OK");
             client.println("Content-Type: text/html");
             client.println("Connection: close");
@@ -142,46 +145,44 @@ void inicioDeAlmacenamiento(String fileNameAndExtension){
   if (Archivo) {
     // latitud,longitud,altitud,temperatura (DHT), temperatura(CCS), temperatura (BMP), humedad (DHT11), hic (DHT11), co2 (CCS811), tvoc(CCS811), presionAtmosferica (BMP180)
 
-    Archivo.println("SEP="+itemSeparator);
+    Archivo.println("SEP="+sep);
     Archivo.print("------------------------------------------------ INICIO DE LA TOMA DE DATOS -------------------------------------------------");
     Archivo.println();
     
     Archivo.print("Latitud");
-    Archivo.print(itemSeparator);
+    Archivo.print(sep);
 
     Archivo.print("Longitud");
-    Archivo.print(itemSeparator);
+    Archivo.print(sep);
 
     Archivo.print("Altitud");
-    Archivo.print(itemSeparator);
+    Archivo.print(sep);
 
     Archivo.print("Temperatura (DHT11)");
-    Archivo.print(itemSeparator);
+    Archivo.print(sep);
 
 
     Archivo.print("Temperatura (CCS811)");
-    Archivo.print(itemSeparator);
+    Archivo.print(sep);
 
     Archivo.print("Temperatura (BMP180)");
-    Archivo.print(itemSeparator);
+    Archivo.print(sep);
 
     Archivo.print("humedad (DHT11)");
-    Archivo.print(itemSeparator);
+    Archivo.print(sep);
 
     
     Archivo.print("hic (DHT11)");
-    Archivo.print(itemSeparator);
+    Archivo.print(sep);
     
     Archivo.print("co2 (CCS811)");
-    Archivo.print(itemSeparator);
+    Archivo.print(sep);
     
     Archivo.print("tvoc(CCS811)");
-    Archivo.print(itemSeparator);
-
-  
+    Archivo.print(sep);  
 
     Archivo.print("presionAtmosferica (BMP180)");
-    Archivo.println(itemSeparator);
+    Archivo.println(sep);
 
 
   }else {
