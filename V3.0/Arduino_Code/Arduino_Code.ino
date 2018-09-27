@@ -46,8 +46,8 @@
 
 
 //Ports and sensor def
-SoftwareSerial gpsSerial(7,8);
-DHT dht(6, 'DHT11');  
+SoftwareSerial gpsSerial(gpsRx,gpsTx);
+DHT dht(dhtPin, dhtType);  
 Adafruit_CCS811 ccs;
 TinyGPS gps;
 SFE_BMP180 pressure;
