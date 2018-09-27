@@ -61,8 +61,8 @@ void loop()
 {
   int countBytes = getDataFromArduino();
   String str(t);
-  saveDataSD(t);
-  webPage(t);
+  saveDataSD(str);
+  webPage(str);
   delay(timeDelay);
 }
 
