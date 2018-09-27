@@ -2,9 +2,16 @@
 - Powered by arduino
 [![N|Solid](https://www.arduino.cc/en/uploads/Trademark/ArduinoCommunityLogo.png)](https://arduino.cc)
 
-#Library
 
- - Added library https://github.com/miguel5612/metereologicStationLib
+## library required before install 
+- [Adrafruit sensor](https://github.com/adafruit/Adafruit_Sensor)
+- [Adafruit_CCS811](https://github.com/adafruit/Adafruit_CCS811)
+- [SFE_BMP180](https://github.com/sparkfun/BMP180_Breakout)
+- [TinyGPS](https://github.com/mikalhart/TinyGPS)
+- [DHT](https://github.com/adafruit/DHT-sensor-library)
+Note: 
+3.0 version has all libs in library folder.
+
 
 Dronefenix is an open source project that seeks the implementation of a datalogger on a drone for efficient environmental sampling.
 
