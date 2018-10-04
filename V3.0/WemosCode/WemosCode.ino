@@ -3,10 +3,18 @@
 #include <Wire.h>
 // Including the ESP8266 WiFi library
 #include <ESP8266WiFi.h>
+#include <WiFiClient.h>
+#include <ESP8266WebServer.h>
+#include <I2C_Anything.h>
 
 // Replace with your network details
-const char* ssid = "REPLACE_WITH_YOUR_SSID";
-const char* password = "REPLACE_WITH_YOUR_PASSWORD";
+const char* ssid = "DroneFenix_V3.00";
+const char* password = "abcd1234";
+
+//Variables que van a ser leidas del arduino
+short p,P,tvoc,co2,alt;
+byte tempCCS,t,T,h,tBMP,hic;
+float lat=0,lon=0;
 
 
 //Definitions
@@ -14,40 +22,35 @@ const char* password = "REPLACE_WITH_YOUR_PASSWORD";
 #define chipSelect 4 //D4
 #define bytes 100
 #define sep ','
-#define timeDelay 500
+#define timeDelay 1400
 #define ledWarning 13
+#define decimalPlaces 4
 
 //variables
 int defaultFileCounter = 0;
-char t[bytes]={};
 File Archivo;
 String defaultFileName = "datos"; // nombre del archivo por defecto
 String defaultFileExtension = ".csv";
+String Data = "";
 
 
 // Web Server on port 80
-WiFiServer server(80);
+ESP8266WebServer server(80);
 
 void setup()
 {
   if(initModule()){Serial.println("card initialized.");};
   pinMode(ledWarning,OUTPUT);
   digitalWrite(ledWarning,LOW);
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
-  }
+  Serial.println(WiFi.softAP(ssid, password) ? "Ready" : "Failed!");
   Serial.println("");
-  Serial.println("WiFi connected");
-  
+ IPAddress myIP = WiFi.softAPIP(); //Get IP address
+  Serial.print("HotSpt IP:");
+  Serial.println(myIP);
   // Starting the web server
+  server.on("/", webPage);  
   server.begin();
   Serial.println("Web server running. Waiting for the ESP IP...");
-  delay(10000);
-  
-  // Printing the ESP IP address
-  Serial.println(WiFi.localIP());
-
   while(SD.exists(defaultFileName+defaultFileCounter+defaultFileExtension)){
     Serial.println("EXISTE: "+defaultFileName+defaultFileCounter+defaultFileExtension);
     Serial.println(SD.exists(defaultFileName+defaultFileCounter+defaultFileExtension));  
@@ -59,11 +62,15 @@ void setup()
 
 void loop()
 {
-  int countBytes = getDataFromArduino();
-  String str(t);
-  saveDataSD(str);
-  webPage(str);
-  delay(timeDelay);
+  Serial.println(Data);
+  saveDataSD(Data);
+  smartDelay(timeDelay);
+}
+void smartDelay(int timeWait){
+  unsigned long oldTime = millis();
+  while(millis()-oldTime<=timeWait){
+    server.handleClient(); 
+  }
 }
 
 void saveDataSD(String Data){
@@ -74,14 +81,51 @@ void saveDataSD(String Data){
     Serial.println(Data);
   }
 }
-int getDataFromArduino(){
-  Wire.requestFrom(SLAVE_ADDRESS, bytes);
-  int i=0; //counter for each bite as it arrives
-  while (Wire.available()) { 
-    t[i] = Wire.read(); // every character that arrives it put in order in the empty array "t"
-    i=i+1;
-  }
-  return i;
+void getDataFromArduino(){
+  I2C_readAnything (lat);
+  I2C_readAnything (lon);
+  I2C_readAnything (alt);
+  I2C_readAnything (co2);
+  I2C_readAnything (tvoc);
+  I2C_readAnything (p);
+  I2C_readAnything (t);
+  I2C_readAnything (tempCCS);
+  I2C_readAnything (tBMP);
+  I2C_readAnything (h);
+  I2C_readAnything (hic);
+  Data =  String(lat,decimalPlaces) + sep +  String(lon,decimalPlaces) + sep + String(alt,decimalPlaces) + sep + String(t,decimalPlaces) + String(tempCCS,decimalPlaces)  + sep  + String(tBMP,decimalPlaces) +  sep  +  String(h,decimalPlaces) + sep  +  String(hic,decimalPlaces) + sep  + String(co2,decimalPlaces)  + sep  + String(tvoc,decimalPlaces)  + sep  + String(p,decimalPlaces) ;
+}
+
+String getData() {
+  Serial.print("out string: ");
+  Serial.println(Data);
+  return Data;
+}
+
+
+static void smartdelay(unsigned long ms)
+{
+  unsigned long start = millis();
+  do 
+  {
+  //do not nothing
+  } while (millis() - start < ms);
+}
+
+
+void showData(){
+  Serial.println ("------------ Received data -------------- ");
+    Serial.println (isnan(lat)?0:lat);
+    Serial.println (isnan(lon)?0:lon);
+    Serial.println (isnan(alt)?0:alt);
+    Serial.println (isnan(co2)?0:co2);
+    Serial.println (isnan(tvoc)?0:tvoc);
+    Serial.println (isnan(p)?0:p);
+    Serial.println (isnan(t)?0:t);
+    Serial.println (isnan(tempCCS)?0:tempCCS);
+    Serial.println (isnan(tBMP)?0:tBMP);
+    Serial.println (isnan(h)?0:h);
+    Serial.println (isnan(hic)?0:hic);
 }
 boolean initModule(){
   Serial.begin(9600);
@@ -92,23 +136,14 @@ boolean initModule(){
     Serial.println("Card failed, or not present");
     return false;
   }
-  Wire.begin ();
+  Wire.begin(8);                // Conectamos al bus I2c identificando a este dispositivo como 8
+  Wire.onReceive(getDataFromArduino); // Se registra la función receiveEvent, que será llamada cada vez que se reciba un dato por I2C
   return true;
 }
 
-void webPage(String Data){
-  // Listenning for new clients
-  WiFiClient client = server.available();
-  
-  if (client) {
-    Serial.println("New client");
-    // bolean to locate when the http request ends
-    boolean blank_line = true;
-    while (client.connected()) {
-      if (client.available()) {
-        char c = client.read();
-        
-        if (c == '\n' && blank_line) {
+void webPage(){
+            server.send(200, "text/plain",Data);
+            /*
             client.println("HTTP/1.1 200 OK");
             client.println("Content-Type: text/html");
             client.println("Connection: close");
@@ -121,23 +156,7 @@ void webPage(String Data){
             client.println("*C</h3><h3>Raw data: ");
             client.println(Data);
             client.println("*F</h3></body></html>");  
-            break;
-        }
-        if (c == '\n') {
-          // when starts reading a new line
-          blank_line = true;
-        }
-        else if (c != '\r') {
-          // when finds a character on the current line
-          blank_line = false;
-        }
-      }
-    }  
-    // closing the client connection
-    delay(1);
-    client.stop();
-    Serial.println("Client disconnected.");
-  }
+            */
 }
 void inicioDeAlmacenamiento(String fileNameAndExtension){
   Archivo = SD.open(fileNameAndExtension, FILE_WRITE);  

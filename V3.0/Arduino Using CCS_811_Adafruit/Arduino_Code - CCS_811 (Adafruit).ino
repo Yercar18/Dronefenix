@@ -25,14 +25,11 @@
 #include <SPI.h>
 #include <Wire.h>
 #include <SoftwareSerial.h>
-#include <I2C_Anything.h>
 
 #include <TinyGPS.h>
 #include <DHT.h>
+#include <Adafruit_CCS811.h>
 #include <SFE_BMP180.h>
-#include "SparkFunCCS811.h"
-
-#define CCS811_ADDR 0x5A //Default I2C Address
 
 //Definitions
 #define gpsRx 6
@@ -45,15 +42,13 @@
 //Def to send data
 #define sep ','
 #define decimalPlaces 4
-//I2C Address
-#define master 1 //arduino pro mini
-#define slave 8 //wemos D1
+
 
 
 //Ports and sensor def
 SoftwareSerial gpsSerial(gpsRx,gpsTx);
 DHT dht(dhtPin, dhtType);  
-CCS811 ccs(CCS811_ADDR);
+Adafruit_CCS811 ccs;
 TinyGPS gps;
 SFE_BMP180 pressure;
 
@@ -73,55 +68,31 @@ void setup(){
 void loop(){
   readData();
   Serial.println("read OK");
+  requestEvent();
   Serial.println("request OK");
-  sendData();
-  Serial.println("Data sended");
-  showData();
   smartdelay(timeDelay);
-  //Serial.println("delay OK");
+  Serial.println("delay OK");
 }
-void showData(){
-    Serial.println ("------------ Sended data -------------- ");
-    Serial.println (isnan(lat)?0:lat);
-    Serial.println (isnan(lon)?0:lon);
-    Serial.println (isnan(alt)?0:alt);
-    Serial.println (isnan(t)?0:t);
-    Serial.println (isnan(tempCCS)?0:tempCCS);
-    Serial.println (isnan(tBMP)?0:tBMP);
-    Serial.println (isnan(h)?0:h);
-    Serial.println (isnan(hic)?0:hic);
-    Serial.println (isnan(co2)?0:co2);
-    Serial.println (isnan(tvoc)?0:tvoc);
-    Serial.println (isnan(p)?0:p);
-}
-void sendData(){
-  Wire.beginTransmission(slave);
-  //Wire.write(getData().c_str());
-  I2C_writeAnything (lat);
-  I2C_writeAnything (lon);
-  I2C_writeAnything ((short)alt);
-  I2C_writeAnything ((short)co2);
-  I2C_writeAnything ((short)tvoc);
-  I2C_writeAnything ((short)p);
-  I2C_writeAnything ((byte)t);
-  I2C_writeAnything ((byte)tempCCS);
-  I2C_writeAnything ((byte)tBMP);
-  I2C_writeAnything ((byte)h);
-  I2C_writeAnything ((byte)hic);
-  Wire.endTransmission();
+void requestEvent()
+{
+  String data = getData();
+  int str_len = data.length() + 1;  
+  uint8_t Buffer[str_len];
+  data.toCharArray(Buffer, str_len);
+  Wire.write(Buffer,str_len);
 }
 void readData()
 {
   h = dht.readHumidity();
    t = dht.readTemperature();
    hic = dht.computeHeatIndex(t, h, false);
-    //float temp = ccs.calculateTemperature();
-    if (ccs.dataAvailable()) {
-      ccs.readAlgorithmResults();
-      co2 = ccs.getCO2();
+   if (ccs.available()) {
+    float temp = ccs.calculateTemperature();
+    if (!ccs.readData()) {
+      co2 = ccs.geteCO2();
       tvoc = ccs.getTVOC();
-      tempCCS =  t;
-    
+      tempCCS =  temp;
+    }
   }
   status = pressure.startTemperature();
   if (status != 0)
@@ -147,8 +118,7 @@ void readData()
   gps.stats(&chars, &sentences, &failed);
   alt = gps.f_altitude();
   // latitud,longitud,altitud,temperatura (DHT), temperatura(CCS), temperatura (BMP), humedad (DHT11), hic (DHT11), co2 (CCS811), tvoc(CCS811), presionAtmosferica (BMP180)
-  //outStr = String(lat,decimalPlaces) + sep +  String(lon,decimalPlaces) + sep + String(alt,decimalPlaces) + sep + String(t,decimalPlaces) + String(tempCCS,decimalPlaces)  + sep  + String(tBMP,decimalPlaces) +  sep  +  String(h,decimalPlaces) + sep  +  String(hic,decimalPlaces) + sep  + String(co2,decimalPlaces)  + sep  + String(tvoc,decimalPlaces)  + sep  + String(p,decimalPlaces) ;
-  ccs.setEnvironmentalData(h, t);
+  outStr = String(lat,decimalPlaces) + sep +  String(lon,decimalPlaces) + sep + String(alt,decimalPlaces) + sep + String(t,decimalPlaces) + String(tempCCS,decimalPlaces)  + sep  + String(tBMP,decimalPlaces) +  sep  +  String(h,decimalPlaces) + sep  +  String(hic,decimalPlaces) + sep  + String(co2,decimalPlaces)  + sep  + String(tvoc,decimalPlaces)  + sep  + String(p,decimalPlaces) ;
 }
 
 String getData() {
@@ -160,14 +130,13 @@ String getData() {
 
 bool initSensors(){
   Serial.begin(baudRateDebug);
-  Serial.println("INIT start");
-  CCS811Core::status returnCode = ccs.begin();
-  Serial.print("begin exited with: ");
-  printDriverError( returnCode );
+  Serial.println("Init");
+  if(!ccs.begin()){return false;}
   if(!pressure.begin()){return false;}  
+  Wire.begin(8);
+  Wire.onRequest(requestEvent); // register event
   dht.begin();
   gpsSerial.begin(baudRateGps);
-  Wire.begin(master);
   return true;
 }
 static void smartdelay(unsigned long ms)
@@ -179,28 +148,3 @@ static void smartdelay(unsigned long ms)
       gps.encode(gpsSerial.read());
   } while (millis() - start < ms);
 }
-//to this function to see what the output was.
-void printDriverError( CCS811Core::status errorCode )
-{
-  switch ( errorCode )
-  {
-    case CCS811Core::SENSOR_SUCCESS:
-      Serial.print("SUCCESS");
-      break;
-    case CCS811Core::SENSOR_ID_ERROR:
-      Serial.print("ID_ERROR");
-      break;
-    case CCS811Core::SENSOR_I2C_ERROR:
-      Serial.print("I2C_ERROR");
-      break;
-    case CCS811Core::SENSOR_INTERNAL_ERROR:
-      Serial.print("INTERNAL_ERROR");
-      break;
-    case CCS811Core::SENSOR_GENERIC_ERROR:
-      Serial.print("GENERIC_ERROR");
-      break;
-    default:
-      Serial.print("Unspecified error.");
-  }
-}
-
