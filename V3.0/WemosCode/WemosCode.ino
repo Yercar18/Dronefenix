@@ -1,12 +1,13 @@
 #include <SPI.h>
 #include <SD.h>
-#include <Wire.h>
 // Including the ESP8266 WiFi library
 #include <ESP8266WiFi.h>
 #include <WiFiClient.h>
+#include <SoftwareSerial.h>
 #include <ESP8266WebServer.h>
-#include <I2C_Anything.h>
 
+#define master 1
+#define slave 8
 // Replace with your network details
 const char* ssid = "DroneFenix_V3.00";
 const char* password = "abcd1234";
@@ -25,6 +26,8 @@ float lat=0,lon=0;
 #define timeDelay 1400
 #define ledWarning 13
 #define decimalPlaces 4
+#define aTx 13
+#define aRx 15
 
 //variables
 int defaultFileCounter = 0;
@@ -36,10 +39,12 @@ String Data = "";
 
 // Web Server on port 80
 ESP8266WebServer server(80);
+SoftwareSerial arduinoSerial(aRx,aTx);
 
 void setup()
 {
   if(initModule()){Serial.println("card initialized.");};
+  arduinoSerial.begin(9600);
   pinMode(ledWarning,OUTPUT);
   digitalWrite(ledWarning,LOW);
   Serial.println(WiFi.softAP(ssid, password) ? "Ready" : "Failed!");
@@ -62,7 +67,8 @@ void setup()
 
 void loop()
 {
-  Serial.println(Data);
+  getDataFromArduino();
+  showData();
   saveDataSD(Data);
   smartDelay(timeDelay);
 }
@@ -82,18 +88,11 @@ void saveDataSD(String Data){
   }
 }
 void getDataFromArduino(){
-  I2C_readAnything (lat);
-  I2C_readAnything (lon);
-  I2C_readAnything (alt);
-  I2C_readAnything (co2);
-  I2C_readAnything (tvoc);
-  I2C_readAnything (p);
-  I2C_readAnything (t);
-  I2C_readAnything (tempCCS);
-  I2C_readAnything (tBMP);
-  I2C_readAnything (h);
-  I2C_readAnything (hic);
-  Data =  String(lat,decimalPlaces) + sep +  String(lon,decimalPlaces) + sep + String(alt,decimalPlaces) + sep + String(t,decimalPlaces) + String(tempCCS,decimalPlaces)  + sep  + String(tBMP,decimalPlaces) +  sep  +  String(h,decimalPlaces) + sep  +  String(hic,decimalPlaces) + sep  + String(co2,decimalPlaces)  + sep  + String(tvoc,decimalPlaces)  + sep  + String(p,decimalPlaces) ;
+  Serial.println("Request");
+  Data = arduinoSerial.readString();
+  Serial.print("Data: ");
+  Serial.println(Data);
+  
 }
 
 String getData() {
@@ -101,17 +100,6 @@ String getData() {
   Serial.println(Data);
   return Data;
 }
-
-
-static void smartdelay(unsigned long ms)
-{
-  unsigned long start = millis();
-  do 
-  {
-  //do not nothing
-  } while (millis() - start < ms);
-}
-
 
 void showData(){
   Serial.println ("------------ Received data -------------- ");
@@ -128,16 +116,13 @@ void showData(){
     Serial.println (isnan(hic)?0:hic);
 }
 boolean initModule(){
-  Serial.begin(9600);
-  while (!Serial) {
-  }
+  Serial.begin(115200);
   Serial.print("Initializing SD card...");
   if (!SD.begin(chipSelect)) {
     Serial.println("Card failed, or not present");
     return false;
   }
-  Wire.begin(8);                // Conectamos al bus I2c identificando a este dispositivo como 8
-  Wire.onReceive(getDataFromArduino); // Se registra la función receiveEvent, que será llamada cada vez que se reciba un dato por I2C
+  
   return true;
 }
 

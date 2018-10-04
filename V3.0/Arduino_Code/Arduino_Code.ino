@@ -23,9 +23,9 @@
 */
 //Library
 #include <SPI.h>
-#include <Wire.h>
+//#include <Wire.h>
 #include <SoftwareSerial.h>
-#include <I2C_Anything.h>
+//#include <I2C_Anything.h>
 
 #include <TinyGPS.h>
 #include <DHT.h>
@@ -48,10 +48,12 @@
 //I2C Address
 #define master 1 //arduino pro mini
 #define slave 8 //wemos D1
-
+#define wRx 10
+#define wTx 11
 
 //Ports and sensor def
 SoftwareSerial gpsSerial(gpsRx,gpsTx);
+SoftwareSerial weMoSerial(wRx,wTx);
 DHT dht(dhtPin, dhtType);  
 CCS811 ccs(CCS811_ADDR);
 TinyGPS gps;
@@ -73,9 +75,7 @@ void setup(){
 void loop(){
   readData();
   Serial.println("read OK");
-  Serial.println("request OK");
   sendData();
-  Serial.println("Data sended");
   showData();
   smartdelay(timeDelay);
   //Serial.println("delay OK");
@@ -95,20 +95,21 @@ void showData(){
     Serial.println (isnan(p)?0:p);
 }
 void sendData(){
-  Wire.beginTransmission(slave);
   //Wire.write(getData().c_str());
-  I2C_writeAnything (lat);
-  I2C_writeAnything (lon);
-  I2C_writeAnything ((short)alt);
-  I2C_writeAnything ((short)co2);
-  I2C_writeAnything ((short)tvoc);
-  I2C_writeAnything ((short)p);
-  I2C_writeAnything ((byte)t);
-  I2C_writeAnything ((byte)tempCCS);
-  I2C_writeAnything ((byte)tBMP);
-  I2C_writeAnything ((byte)h);
-  I2C_writeAnything ((byte)hic);
-  Wire.endTransmission();
+//  I2C_writeAnything (lat);
+//  I2C_writeAnything (lon);
+//  I2C_writeAnything ((short)alt);
+//  I2C_writeAnything ((short)co2);
+//  I2C_writeAnything ((short)tvoc);
+//  I2C_writeAnything ((short)p);
+//  I2C_writeAnything ((byte)t);
+//  I2C_writeAnything ((byte)tempCCS);
+//  I2C_writeAnything ((byte)tBMP);
+//  I2C_writeAnything ((byte)h);
+//  I2C_writeAnything ((byte)hic);
+String Data = String(lat,decimalPlaces) + sep +  String(lon,decimalPlaces) + sep + String(alt,decimalPlaces) + sep + String(t,decimalPlaces) + String(tempCCS,decimalPlaces)  + sep  + String(tBMP,decimalPlaces) +  sep  +  String(h,decimalPlaces) + sep  +  String(hic,decimalPlaces) + sep  + String(co2,decimalPlaces)  + sep  + String(tvoc,decimalPlaces)  + sep  + String(p,decimalPlaces);
+  weMoSerial.println(Data);
+  Serial.println("Data writed");
 }
 void readData()
 {
@@ -161,13 +162,15 @@ String getData() {
 bool initSensors(){
   Serial.begin(baudRateDebug);
   Serial.println("INIT start");
+  weMoSerial.begin(baudRateDebug);
   CCS811Core::status returnCode = ccs.begin();
   Serial.print("begin exited with: ");
   printDriverError( returnCode );
   if(!pressure.begin()){return false;}  
   dht.begin();
   gpsSerial.begin(baudRateGps);
-  Wire.begin(master);
+  //Wire.begin(slave);
+  //Wire.onReceive (sendData);
   return true;
 }
 static void smartdelay(unsigned long ms)
