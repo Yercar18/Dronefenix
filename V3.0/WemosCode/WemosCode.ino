@@ -3,7 +3,7 @@
 // Including the ESP8266 WiFi library
 #include <ESP8266WiFi.h>
 #include <WiFiClient.h>
-#include <SoftwareSerial.h>
+#include "SoftwareSerial.h"
 #include <ESP8266WebServer.h>
 
 #define master 1
@@ -39,12 +39,12 @@ String Data = "";
 
 // Web Server on port 80
 ESP8266WebServer server(80);
-SoftwareSerial arduinoSerial(aRx,aTx);
+SoftwareSerial arduinoSerial(aRx,aTx, false, 256);
 
 void setup()
 {
   if(initModule()){Serial.println("card initialized.");};
-  arduinoSerial.begin(9600);
+  arduinoSerial.begin(115200);
   pinMode(ledWarning,OUTPUT);
   digitalWrite(ledWarning,LOW);
   Serial.println(WiFi.softAP(ssid, password) ? "Ready" : "Failed!");

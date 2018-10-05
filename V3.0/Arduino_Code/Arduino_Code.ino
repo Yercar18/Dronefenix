@@ -38,7 +38,7 @@
 #define gpsRx 6
 #define gpsTx 7
 #define baudRateGps 9600
-#define baudRateDebug 9600
+#define baudRateDebug 115200
 #define dhtPin 8
 #define dhtType DHT11
 #define timeDelay 1000
@@ -107,9 +107,10 @@ void sendData(){
 //  I2C_writeAnything ((byte)tBMP);
 //  I2C_writeAnything ((byte)h);
 //  I2C_writeAnything ((byte)hic);
-String Data = String(lat,decimalPlaces) + sep +  String(lon,decimalPlaces) + sep + String(alt,decimalPlaces) + sep + String(t,decimalPlaces) + String(tempCCS,decimalPlaces)  + sep  + String(tBMP,decimalPlaces) +  sep  +  String(h,decimalPlaces) + sep  +  String(hic,decimalPlaces) + sep  + String(co2,decimalPlaces)  + sep  + String(tvoc,decimalPlaces)  + sep  + String(p,decimalPlaces);
+  String Data = String(lat,decimalPlaces) + sep +  String(lon,decimalPlaces) + sep + String(alt,decimalPlaces) + sep + String(t,decimalPlaces) + String(tempCCS,decimalPlaces)  + sep  + String(tBMP,decimalPlaces) +  sep  +  String(h,decimalPlaces) + sep  +  String(hic,decimalPlaces) + sep  + String(co2,decimalPlaces)  + sep  + String(tvoc,decimalPlaces)  + sep  + String(p,decimalPlaces);
   weMoSerial.println(Data);
-  Serial.println("Data writed");
+  Serial.print("Data writed:");
+  Serial.println(Data);
 }
 void readData()
 {
