@@ -3,7 +3,7 @@
 // Including the ESP8266 WiFi library
 #include <ESP8266WiFi.h>
 #include <WiFiClient.h>
-#include "SoftwareSerial.h"
+#include <SoftwareSerial.h>
 #include <ESP8266WebServer.h>
 
 #define master 1
@@ -20,14 +20,14 @@ float lat=0,lon=0;
 
 //Definitions
 #define SLAVE_ADDRESS 8 //Slave arduino ID
-#define chipSelect 4 //D4
+#define chipSelect D4 //D4
 #define bytes 100
 #define sep ','
 #define timeDelay 1400
 #define ledWarning 13
 #define decimalPlaces 4
-#define aTx 13
-#define aRx 15
+#define aTx 12
+#define aRx 14
 
 //variables
 int defaultFileCounter = 0;
@@ -67,15 +67,16 @@ void setup()
 
 void loop()
 {
-  getDataFromArduino();
-  showData();
+  //getDataFromArduino();
+  //showData();
   saveDataSD(Data);
   smartDelay(timeDelay);
 }
 void smartDelay(int timeWait){
   unsigned long oldTime = millis();
   while(millis()-oldTime<=timeWait){
-    server.handleClient(); 
+    server.handleClient();
+    getDataFromArduino();
   }
 }
 
@@ -88,11 +89,10 @@ void saveDataSD(String Data){
   }
 }
 void getDataFromArduino(){
-  Serial.println("Request");
-  Data = arduinoSerial.readString();
-  Serial.print("Data: ");
-  Serial.println(Data);
-  
+    while (arduinoSerial.available() > 0) {
+      Serial.write(arduinoSerial.read());
+      yield();
+    }
 }
 
 String getData() {
