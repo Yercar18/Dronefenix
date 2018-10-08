@@ -14,14 +14,14 @@
 #define ledWarning 13
 #define BAUD_RATE 115200
 #define chipSelect D4
+#define defaultFileName 'datos'
+#define defaultFileExtension '.csv'
+#define ssid "DroneFenix_V3.00"
+#define password "abcd1234"
 
 String Data = "";
-const char* ssid = "DroneFenix_V3.00";
-const char* password = "abcd1234";
-String defaultFileName = "datos"; // nombre del archivo por defecto
-String defaultFileExtension = ".csv";
-int defaultFileCounter = 0;
-boolean newData = false;
+int defaultFileCounter = 0,contadorDatos = 0;
+boolean newData = false, validData = false;
 File Archivo;
 
 
@@ -51,48 +51,49 @@ void setup() {
   // Starting the web server
   server.on("/", webPage);  
   server.begin();
-  while(SD.exists(defaultFileName+defaultFileCounter+defaultFileExtension)){
+  while(SD.exists(String(defaultFileName+defaultFileCounter+defaultFileExtension))){
     Serial.println("EXISTE: "+defaultFileName+defaultFileCounter+defaultFileExtension);
-    Serial.println(SD.exists(defaultFileName+defaultFileCounter+defaultFileExtension));  
+    Serial.println(SD.exists(String(defaultFileName+defaultFileCounter+defaultFileExtension)));  
     defaultFileCounter +=1;  
+    delay(defaultFileCounter);
   }
-  inicioDeAlmacenamiento(defaultFileName+defaultFileCounter+defaultFileExtension);// Esta funcion verifica la integridad del archivo y realiza la insecion de las caveceras
+  inicioDeAlmacenamiento(String(defaultFileName+defaultFileCounter+defaultFileExtension));// Esta funcion verifica la integridad del archivo y realiza la insecion de las caveceras
 }
 
 void loop() {
-    smartDelay(timeDelay);
-    saveDataSD(Data); 
     if(newData){
-      showData();
+      ValidateAndShowData();
     }
+    saveDataSD(Data);
+    smartDelay(timeDelay + contadorDatos); 
 }
 void getDataFromArduino(){
   while (arduinoSerial.available() > 0) {
     char inByte = arduinoSerial.read();
     Data += inByte;
-    Serial.write(inByte);
-    newData = true;
+    //Serial.write(inByte);
+    newData = true; 
+    validData = false; //to validate
     yield();
   }
-  while (Serial.available() > 0) {
-    arduinoSerial.write(Serial.read());
+  //while (Serial.available() > 0) {
+    //arduinoSerial.write(Serial.read());
     //yield();
-  }
+  //}
   //Serial.print("DataSerial: ");
   //Serial.println(Data);
 }
 void saveDataSD(String Data){
   // String  var = getValue( StringVar, ',', 2); // if  a,4,D,r  would return D    
-  if(getValue(Data, sep, 0)>=0 & getValue(Data, sep, 1)>=0 & getValue(Data, sep, 2)>=0 & getValue(Data, sep, 3)>=0 & getValue(Data, sep, 4)>=0 & getValue(Data, sep, 5)>=0 & getValue(Data, sep, 6)>=0 & getValue(Data, sep, 7)>=0 & getValue(Data, sep, 8)>=0 & getValue(Data, sep, 9)>=0 & getValue(Data, sep, 10)>=0 & Archivo & newData){
-    Archivo = SD.open(defaultFileName+defaultFileCounter+defaultFileExtension, FILE_WRITE);
-    Serial.println("LLegue");
+  if(validData & newData){
+    Archivo = SD.open(String(defaultFileName+defaultFileCounter+defaultFileExtension), FILE_WRITE);
     delay(1);
     Archivo.println(Data);
+    delay(1);
     Archivo.close();
-    Serial.print("Data_SD: ");
-    Serial.println(Data);
-    Data = "";
-    newData = false;
+    Serial.println("Data_almacenada ");
+    contadorDatos++;
+    Data = "";newData = false;validData = false;
   }
   }
 void smartDelay(int timeWait){
@@ -103,11 +104,13 @@ void smartDelay(int timeWait){
     delay(timeWait/10);
   }
 }
-void showData(){
-    Serial.println("--------------DATA--------------");
+void ValidateAndShowData(){
+  validData = false;
   for(int i=0;i<=10;i++){
-    Serial.println(getValue(Data, sep, 0));
+    validData = getValue(Data, sep, i);
+    delay(10);
   }
+  if(!validData){Serial.println("Validacion: error");}
 }
 void webPage(){
             server.send(200, "text/plain",Data);
@@ -174,7 +177,7 @@ void inicioDeAlmacenamiento(String fileNameAndExtension){
 }
 
 // String  var = getValue( StringVar, ',', 2); // if  a,4,D,r  would return D    
-double getValue(String data, char separator, int index)
+bool getValue(String data, char separator, int index)
 {
     int found = 0;
     int strIndex[] = { 0, -1 };
@@ -187,5 +190,5 @@ double getValue(String data, char separator, int index)
             strIndex[1] = (i == maxIndex) ? i+1 : i;
         }
     }
-    return found > index ? data.substring(strIndex[0], strIndex[1]).toDouble() : 0;
+    return found > index ? data.substring(strIndex[0], strIndex[1]).toInt()>=0 : false;
 }  // END
