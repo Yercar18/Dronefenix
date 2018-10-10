@@ -106,32 +106,6 @@ void ValidateAndShowData(){
   }
   if(!validData){Serial.println("Validacion: error");}
 }
-void webPage(){
-            client.println("HTTP/1.1 200 OK");
-            client.println("Content-Type: text/html");
-            client.println(minWebPageStart);
-            client.println(startData);
-            client.println(Data);
-            client.println(endData);
-            client.println(minWebPageEnd);
-
-            //client.println(,"Error loading page");
-            //server.send(200, "text/plain",Data);
-            /*
-            client.println("HTTP/1.1 200 OK");
-            client.println("Content-Type: text/html");
-            client.println("Connection: close");
-            client.println();
-            // your actual web page that displays temperature
-            client.println("<!DOCTYPE HTML>");
-            client.println("<html>");
-            client.println("<head></head><body><h1>ESP8266 - Data from station</h1><h3>Temperature in Celsius: ");
-            client.println(Data);
-            client.println("*C</h3><h3>Raw data: ");
-            client.println(Data);
-            client.println("*F</h3></body></html>");  
-            */
-}
 
 void inicioDeAlmacenamiento(String fileNameAndExtension){
   Archivo = SD.open(fileNameAndExtension, FILE_WRITE);  
