@@ -56,23 +56,8 @@ void setup() {
   inicioDeAlmacenamiento(String(defaultFileName+defaultFileCounter+defaultFileExtension));// Esta funcion verifica la integridad del archivo y realiza la insecion de las caveceras
 }
 
-void loop() {
-    getDataFromArduino();
-   if(newData){
-     ValidateAndShowData();
-   }
-   if(validData & newData){
-     if(client.connected() ){
-        Data = getValueStr(Data,'\r',0);
-        char msg[Data.length()];
-        Data.toCharArray(msg,Data.length());
-        client.publish(outTopic, msg);
-        delay(timeDelay/10);
-        Serial.print("Data published: ");Serial.print(Data);Serial.println(" <--- Hasta aqui");
-        Data = "";newData = false;validData = false;
-      }
-    }
-    smartDelay(timeDelay); 
+void loop() { 
+    smartDelay(timeDelay);
 }
 void smartDelay(int timeWait){
   unsigned long oldTime = millis();
@@ -81,11 +66,27 @@ void smartDelay(int timeWait){
       reconnect();
     }
     client.loop();
-    if((digitalRead(buttonPin) || test)){
+    getAndValidate();
+    if(validData & newData & millis()-oldTime<=timeWait/4){
+      if(client.connected() ){
+        Data = getValueStr(Data,'\r',0);
+        char msg[Data.length()];
+        Data.toCharArray(msg,Data.length());
+        client.publish(outTopic, msg);
+        delay(timeDelay/10);
+        Serial.print("Data published: ");Serial.print(Data);Serial.println(" <--- Hasta aqui");
+    }
+    if((digitalRead(buttonPin) || test) & validData){
         saveDataSD(getValueStr(Data,'\r',0));
+    }
+    Data = "";newData = false;validData = false;
     }
     delay(timeDelay/10);
   }
+}
+void getAndValidate(){
+  getDataFromArduino();
+  ValidateData();
 }
 void getDataFromArduino(){
   while (arduinoSerial.available() > 0) {
@@ -109,11 +110,13 @@ void saveDataSD(String Data){
   }
 }
 
-void ValidateAndShowData(){
+void ValidateData(){
   validData = false;
-  for(int i=0;i<=10;i++){
-    validData = getValue(Data, sep, i);
-    delay(10);
+  if(newData){
+    for(int i=0;i<=10;i++){
+      validData = getValue(Data, sep, i);
+      delay(10);
+    }
   }
   if(!validData){Serial.println("Validacion: error");}
 }
