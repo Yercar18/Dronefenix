@@ -4,12 +4,15 @@
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
 
-#define timeDelay 2000
+#define timeDelay 2400
 #define sep ','
 #define ledWarning 13
 #define BAUD_RATE 115200
 #define chipSelect D4
 #define buttonPin D8
+#define RelayPin D7
+
+#define test true //Este parametro debe estar en falso para estar en produccion
 
 const String defaultFileName = "datos";
 const String defaultFileExtension = ".csv";
@@ -17,7 +20,7 @@ const String defaultFileExtension = ".csv";
 //Configuraciones de red
 const char* ssid = "MIGUELANGEL";
 const char* password = "administrador5612";
-const char* mqtt_server = "192.168.1.87";
+const char* mqtt_server = "192.168.1.53";
 const char* outTopic = "droneFenix/2/estacion1";
 
 String Data = "";
@@ -33,20 +36,17 @@ PubSubClient client(espClient);
 void setup() {
   Serial.begin(BAUD_RATE);
   arduinoSerial.begin(BAUD_RATE);
-  Serial.print("Initializing SD card...");
   if (!SD.begin(chipSelect)) {
     Serial.println("Card failed, or not present");
   }
-  Serial.println("\nSoftware serial test started");
-  for (char ch = ' '; ch <= 'z'; ch++) {
-    arduinoSerial.write(ch);
-  }
   arduinoSerial.println("");
-  Serial.println(WiFi.softAP(ssid, password) ? "Ready" : "Failed!");
-  Serial.println("");
- IPAddress myIP = WiFi.softAPIP(); //Get IP address
-  Serial.print("HotSpt IP:");
-  Serial.println(myIP);
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  client.setServer(mqtt_server, 1883);
+  client.setCallback(callback);
   while(SD.exists(String(defaultFileName+defaultFileCounter+defaultFileExtension))){
     Serial.println("EXISTE: "+defaultFileName+defaultFileCounter+defaultFileExtension);
     Serial.println(SD.exists(String(defaultFileName+defaultFileCounter+defaultFileExtension)));  
@@ -57,26 +57,46 @@ void setup() {
 }
 
 void loop() {
-    if(newData){
-      ValidateAndShowData();
+    getDataFromArduino();
+   if(newData){
+     ValidateAndShowData();
+   }
+   if(validData & newData){
+     if(client.connected() ){
+        Data = getValueStr(Data,'\r',0);
+        char msg[Data.length()];
+        Data.toCharArray(msg,Data.length());
+        client.publish(outTopic, msg);
+        delay(timeDelay/10);
+        Serial.print("Data published: ");Serial.print(Data);Serial.println(" <--- Hasta aqui");
+        Data = "";newData = false;validData = false;
+      }
     }
-    if(digitalRead(buttonPin)){
-      saveDataSD(Data);
+    smartDelay(timeDelay); 
+}
+void smartDelay(int timeWait){
+  unsigned long oldTime = millis();
+  while(millis()-oldTime<=timeWait){
+    if (!client.connected()) {
+      reconnect();
     }
-    smartDelay(timeDelay + contadorDatos); 
+    client.loop();
+    if((digitalRead(buttonPin) || test)){
+        saveDataSD(Data);
+    }
+    delay(timeDelay/10);
+  }
 }
 void getDataFromArduino(){
   while (arduinoSerial.available() > 0) {
     char inByte = arduinoSerial.read();
     Data += inByte;
-    //Serial.write(inByte);
     newData = true; 
     validData = false; //to validate
     yield();
   }
 }
 void saveDataSD(String Data){
-  // String  var = getValue( StringVar, ',', 2); // if  a,4,D,r  would return D    
   if(validData & newData){
     Archivo = SD.open(String(defaultFileName+defaultFileCounter+defaultFileExtension), FILE_WRITE);
     delay(1);
@@ -85,19 +105,10 @@ void saveDataSD(String Data){
     Archivo.close();
     contadorDatos++;
     Data = "";newData = false;validData = false;
+    Serial.println("Data saved");
   }
 }
-void smartDelay(int timeWait){
-  unsigned long oldTime = millis();
-  while(millis()-oldTime<=timeWait){
-    //server.handleClient();
-    char msg[Data.length()];
-    Data.toCharArray(msg,Data.length());
-    client.publish(outTopic, msg);
-    getDataFromArduino();
-    delay(timeWait/10);
-  }
-}
+
 void ValidateAndShowData(){
   validData = false;
   for(int i=0;i<=10;i++){
@@ -110,11 +121,9 @@ void ValidateAndShowData(){
 void inicioDeAlmacenamiento(String fileNameAndExtension){
   Archivo = SD.open(fileNameAndExtension, FILE_WRITE);  
   Serial.println("EL ARCHIVO EN LA SD SE LLAMARA: "+fileNameAndExtension);
-    // latitud,longitud,altitud,temperatura (DHT), temperatura(CCS), temperatura (BMP), humedad (DHT11), hic (DHT11), co2 (CCS811), tvoc(CCS811), presionAtmosferica (BMP180)
+    
 
     Archivo.println("SEP="+sep);
-    //Archivo.print("------------------------------------------------ INICIO DE LA TOMA DE DATOS -------------------------------------------------");
-    //Archivo.println();
     
     Archivo.print("Latitud");
     Archivo.print(sep);
@@ -153,7 +162,7 @@ void inicioDeAlmacenamiento(String fileNameAndExtension){
     Archivo.close();
 }
 
-// String  var = getValue( StringVar, ',', 2); // if  a,4,D,r  would return D    
+
 bool getValue(String data, char separator, int index)
 {
     int found = 0;
@@ -168,10 +177,8 @@ bool getValue(String data, char separator, int index)
         }
     }
     return found > index ? data.substring(strIndex[0], strIndex[1]).toInt()>=0 : false;
-}  // END
-
-
-double getValueDouble(String data, char separator, int index)
+}
+String getValueStr(String data, char separator, int index)
 {
     int found = 0;
     int strIndex[] = { 0, -1 };
@@ -184,6 +191,46 @@ double getValueDouble(String data, char separator, int index)
             strIndex[1] = (i == maxIndex) ? i+1 : i;
         }
     }
-    return found > index ? atof(data.substring(strIndex[0], strIndex[1]).c_str()) : 0;
-}  // END
+    return found > index ? data.substring(strIndex[0], strIndex[1]) : "";
+}
+void reconnect() {
+  // Loop until we're reconnected
+  while (!client.connected()) {
+    Serial.print("Attempting MQTT connection...");
+    // Attempt to connect
+    if (client.connect("ESP8266Client")) {
+      Serial.println("connected");
+      // Once connected, publish an announcement...
+      client.publish(outTopic, "hello world");
+      // ... and resubscribe
+      //client.subscribe(inTopic);
+    } else {
+      Serial.print("failed, rc=");
+      Serial.print(client.state());
+      Serial.println(" try again in 5 seconds");
+      // Wait 5 seconds before retrying
+      delay(5000);
+    }
+    yield();
+  }
+  
+}
+void callback(char* topic, byte* payload, unsigned int length) {
+  Serial.print("Message arrived [");
+  Serial.print(topic);
+  Serial.print("] ");
+  for (int i = 0; i < length; i++) {
+    Serial.print((char)payload[i]);
+  }
+  Serial.println();
 
+  // Switch on the LED if an 1 was received as first character
+  if ((char)payload[0] == '1') {
+    digitalWrite(RelayPin, LOW);   // Turn the LED on (Note that LOW is the voltage level
+    // but actually the LED is on; this is because
+    // it is acive low on the ESP-01)
+  } else {
+    digitalWrite(RelayPin, HIGH);  // Turn the LED off by making the voltage HIGH
+  }
+
+}
