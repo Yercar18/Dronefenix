@@ -82,7 +82,7 @@ void smartDelay(int timeWait){
     }
     client.loop();
     if((digitalRead(buttonPin) || test)){
-        saveDataSD(Data);
+        saveDataSD(getValueStr(Data,'\r',0));
     }
     delay(timeDelay/10);
   }
