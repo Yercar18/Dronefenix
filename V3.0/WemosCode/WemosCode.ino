@@ -4,15 +4,13 @@
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
 
-#define timeDelay 2400
+#define timeDelay 30000
+#define delayWhileMed 100
 #define sep ','
-#define ledWarning 13
+#define ledWarning led_builtin
 #define BAUD_RATE 115200
 #define chipSelect D4
-#define buttonPin D8
-#define RelayPin D7
 
-#define test true //Este parametro debe estar en falso para estar en produccion
 
 const String defaultFileName = "datos";
 const String defaultFileExtension = ".csv";
@@ -20,7 +18,7 @@ const String defaultFileExtension = ".csv";
 //Configuraciones de red
 const char* ssid = "MIGUELANGEL";
 const char* password = "administrador5612";
-const char* mqtt_server = "192.168.1.53";
+const char* mqtt_server = "181.132.3.67";
 const char* outTopic = "droneFenix/2/estacion1";
 
 String Data = "";
@@ -46,7 +44,7 @@ void setup() {
     Serial.print(".");
   }
   client.setServer(mqtt_server, 1883);
-  client.setCallback(callback);
+  //client.setCallback(callback);
   while(SD.exists(String(defaultFileName+defaultFileCounter+defaultFileExtension))){
     Serial.println("EXISTE: "+defaultFileName+defaultFileCounter+defaultFileExtension);
     Serial.println(SD.exists(String(defaultFileName+defaultFileCounter+defaultFileExtension)));  
@@ -67,21 +65,23 @@ void smartDelay(int timeWait){
     }
     client.loop();
     getAndValidate();
-    if(validData & newData & millis()-oldTime<=timeWait/4){
+    saveDataSD(Data);
+    if(validData & newData & millis()-oldTime>=timeWait/4){
       if(client.connected() ){
         Data = getValueStr(Data,'\r',0);
+        String sendData1 = "";
+        for(int i = 0;i<=9;i++){
+          sendData1+= getValueStr(Data,sep,i) + sep;
+        }
         char msg[Data.length()];
         Data.toCharArray(msg,Data.length());
         client.publish(outTopic, msg);
         delay(timeDelay/10);
         Serial.print("Data published: ");Serial.print(Data);Serial.println(" <--- Hasta aqui");
     }
-    if((digitalRead(buttonPin) || test) & validData){
-        saveDataSD(getValueStr(Data,'\r',0));
     }
+    delay(delayWhileMed);
     Data = "";newData = false;validData = false;
-    }
-    delay(timeDelay/10);
   }
 }
 void getAndValidate(){
@@ -105,7 +105,6 @@ void saveDataSD(String Data){
     delay(1);
     Archivo.close();
     contadorDatos++;
-    Data = "";newData = false;validData = false;
     Serial.println("Data saved");
   }
 }
@@ -118,7 +117,12 @@ void ValidateData(){
       delay(10);
     }
   }
-  if(!validData){Serial.println("Validacion: error");}
+  if(!validData & newData){
+    Serial.print("Validacion: error");
+    Serial.print("   Data: ");
+    Serial.println(Data);
+    Data = "";newData = false;validData = false;
+    }
 }
 
 void inicioDeAlmacenamiento(String fileNameAndExtension){
@@ -218,22 +222,4 @@ void reconnect() {
   }
   
 }
-void callback(char* topic, byte* payload, unsigned int length) {
-  Serial.print("Message arrived [");
-  Serial.print(topic);
-  Serial.print("] ");
-  for (int i = 0; i < length; i++) {
-    Serial.print((char)payload[i]);
-  }
-  Serial.println();
 
-  // Switch on the LED if an 1 was received as first character
-  if ((char)payload[0] == '1') {
-    digitalWrite(RelayPin, LOW);   // Turn the LED on (Note that LOW is the voltage level
-    // but actually the LED is on; this is because
-    // it is acive low on the ESP-01)
-  } else {
-    digitalWrite(RelayPin, HIGH);  // Turn the LED off by making the voltage HIGH
-  }
-
-}

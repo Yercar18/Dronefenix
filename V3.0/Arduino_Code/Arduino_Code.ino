@@ -39,7 +39,7 @@
 #define baudRateDebug 115200
 #define dhtPin 8
 #define dhtType DHT11
-#define timeDelay 1000
+#define timeDelay 30000
 //Def to send data
 #define sep ','
 #define decimalPlaces 4
@@ -48,6 +48,12 @@
 #define slave 8 //wemos D1
 #define wRx 10
 #define wTx 11
+#define btnPin 5
+//Sensores MQ
+#define MQ135 A0
+#define MQ4 A1
+
+
 
 //Ports and sensor def
 SoftwareSerial gpsSerial(gpsRx,gpsTx);
@@ -58,11 +64,14 @@ TinyGPS gps;
 SFE_BMP180 pressure;
 
 //variables
-double  h,t,T,p,P,tBMP,co2,tvoc,tempCCS,hic,status,alt;
+int mq4Data,mq135Data,year;
+double  h,t,T,p,P,tBMP,co2,tvoc,tempCCS,hic,status,alt,temp;
 float lat,lon;
 unsigned long age, date, time, chars = 0;
 unsigned short sentences = 0, failed = 0;
-String outStr;  
+String fecha,outStr;  
+byte month, day, hour, minute, second, hundredths;
+
 
 void setup(){
   if(!initSensors()){
@@ -71,12 +80,16 @@ void setup(){
   Serial.println("INIT OK");
 }
 void loop(){
-  readData();
-  Serial.println("read OK");
-  sendData();
-  showData();
-  smartdelay(timeDelay);
-  //Serial.println("delay OK");
+  if(!digitalRead(btnPin)){
+    readData();
+    Serial.println("read OK");
+    sendData();
+    showData();
+    smartdelay(timeDelay);
+  }else{
+    smartdelay(300);
+  }
+  
 }
 void showData(){
     Serial.println ("------------ Sended data -------------- ");
@@ -93,19 +106,7 @@ void showData(){
     Serial.println (isnan(p)?0:p);
 }
 void sendData(){
-  //Wire.write(getData().c_str());
-//  I2C_writeAnything (lat);
-//  I2C_writeAnything (lon);
-//  I2C_writeAnything ((short)alt);
-//  I2C_writeAnything ((short)co2);
-//  I2C_writeAnything ((short)tvoc);
-//  I2C_writeAnything ((short)p);
-//  I2C_writeAnything ((byte)t);
-//  I2C_writeAnything ((byte)tempCCS);
-//  I2C_writeAnything ((byte)tBMP);
-//  I2C_writeAnything ((byte)h);
-//  I2C_writeAnything ((byte)hic);
-  String Data = String(lat,decimalPlaces) + sep +  String(lon,decimalPlaces) + sep + String(alt,decimalPlaces) + sep + String(t,decimalPlaces)+ sep + String(tempCCS,decimalPlaces)  + sep  + String(tBMP,decimalPlaces) +  sep  +  String(h,decimalPlaces) + sep  +  String(hic,decimalPlaces) + sep  + String(co2,decimalPlaces)  + sep  + String(tvoc,decimalPlaces)  + sep  + String(p,decimalPlaces);
+  String Data = String(isnan(lat)?0:lat,decimalPlaces) + sep +  String(isnan(lon)?0:lon,decimalPlaces) + sep + String(isnan(alt)?0:alt,decimalPlaces) + sep + String(isnan(temp)?0:temp,decimalPlaces) +  sep  +  String(isnan(h)?0:h,decimalPlaces) + sep  +  String(isnan(hic)?0:hic,decimalPlaces) + sep  + String(isnan(co2)?0:co2,decimalPlaces)  + sep  + String(isnan(tvoc)?0:tvoc,decimalPlaces)  + sep  + String(isnan(p)?0:p,decimalPlaces) + sep + String(isnan(mq4Data)?0:mq4Data) +  sep + String(isnan(mq135Data)?0:mq135Data) + sep + fecha;
   weMoSerial.println(Data);
   Serial.print("Data writed:");
   Serial.println(Data);
@@ -146,9 +147,34 @@ void readData()
   gps.f_get_position(&lat, &lon, &age);
   gps.stats(&chars, &sentences, &failed);
   alt = gps.f_altitude();
-  // latitud,longitud,altitud,temperatura (DHT), temperatura(CCS), temperatura (BMP), humedad (DHT11), hic (DHT11), co2 (CCS811), tvoc(CCS811), presionAtmosferica (BMP180)
-  //outStr = String(lat,decimalPlaces) + sep +  String(lon,decimalPlaces) + sep + String(alt,decimalPlaces) + sep + String(t,decimalPlaces) + String(tempCCS,decimalPlaces)  + sep  + String(tBMP,decimalPlaces) +  sep  +  String(h,decimalPlaces) + sep  +  String(hic,decimalPlaces) + sep  + String(co2,decimalPlaces)  + sep  + String(tvoc,decimalPlaces)  + sep  + String(p,decimalPlaces) ;
+  gps.crack_datetime(&year, &month, &day, &hour, &minute, &second, &hundredths, &age);
+  if(!(isnan(t) & isnan(tempCCS) & isnan(tBMP))){
+    if(abs((tempCCS-tBMP)+(t-tBMP)+(tempCCS-t))<10){
+      temp = (t + tempCCS + tBMP)/3;    
+    }else{
+      Serial.println("failed 3 meditions");
+      Serial.print("ABS: ");Serial.println(abs(tempCCS-tBMP-t));
+    }
+  }else if(!isnan(t) & isnan(tempCCS)){
+    if(abs(tempCCS-t)<10){
+      temp = (t + tempCCS)/2;    
+    }else{
+      Serial.println("failed 2 meditions");      
+      Serial.print("ABS: ");Serial.println(abs(tempCCS-t));
+    }
+  }else if(!isnan(t)){
+    temp = t;
+  }
+  char sz[32];
+  sprintf(sz, "%02d/%02d/%02d %02d:%02d:%02d ",month, day, year, hour, minute, second);
+  if (!(age == TinyGPS::GPS_INVALID_AGE)){
+      fecha = sz;
+  }else{
+      fecha = "01.01.2001 00:00";
+  }
   ccs.setEnvironmentalData(h, t);
+  mq135Data = analogRead(MQ135);
+  mq4Data = analogRead(MQ4);
 }
 
 String getData() {
@@ -168,8 +194,9 @@ bool initSensors(){
   if(!pressure.begin()){return false;}  
   dht.begin();
   gpsSerial.begin(baudRateGps);
-  //Wire.begin(slave);
-  //Wire.onReceive (sendData);
+  pinMode(MQ135,INPUT);
+  pinMode(MQ4,INPUT);
+  pinMode(btnPin, INPUT_PULLUP);
   return true;
 }
 static void smartdelay(unsigned long ms)
