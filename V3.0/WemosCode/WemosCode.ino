@@ -73,8 +73,8 @@ void smartDelay(int timeWait){
         for(int i = 0;i<=9;i++){
           sendData1+= getValueStr(Data,sep,i) + sep;
         }
-        char msg[Data.length()];
-        Data.toCharArray(msg,Data.length());
+        char msg[sendData1.length()];
+        sendData1.toCharArray(msg,sendData1.length());
         client.publish(outTopic, msg);
         delay(timeDelay/10);
         Serial.print("Data published: ");Serial.print(Data);Serial.println(" <--- Hasta aqui");
