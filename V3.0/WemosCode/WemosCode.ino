@@ -70,14 +70,15 @@ void smartDelay(int timeWait){
       if(client.connected() ){
         Data = getValueStr(Data,'\r',0);
         String sendData1 = "";
-        for(int i = 0;i<=9;i++){
+        for(int i = 0;i<=8;i++){
           sendData1+= getValueStr(Data,sep,i) + sep;
         }
+        sendData1+= getValueStr(Data,sep,9);
         char msg[sendData1.length()];
         sendData1.toCharArray(msg,sendData1.length());
         client.publish(outTopic, msg);
         delay(timeDelay/10);
-        Serial.print("Data published: ");Serial.print(Data);Serial.println(" <--- Hasta aqui");
+        Serial.print("Data published: ");Serial.print(sendData1);Serial.println(" <--- Hasta aqui");
     }
     }
     delay(delayWhileMed);
