@@ -3,6 +3,10 @@
 #include <SoftwareSerial.h>
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
+//needed for library
+#include <DNSServer.h>
+#include <ESP8266WebServer.h>
+#include <WiFiManager.h>     
 
 #define timeDelay 30000
 #define delayWhileMed 100
@@ -16,14 +20,13 @@ const String defaultFileName = "datos";
 const String defaultFileExtension = ".csv";
 
 //Configuraciones de red
-const char* ssid = "MIGUELANGEL";
-const char* password = "administrador5612";
 const char* mqtt_server = "181.132.3.67";
 const char* outTopic = "droneFenix/2/estacion1";
+const char* inTopic= "droneFenix/2/estacion1In";
 
 String Data = "";
 int defaultFileCounter = 0,contadorDatos = 0;
-boolean newData = false, validData = false;
+boolean newData = false, validData = false, releState = false;
 File Archivo;
 
 
@@ -38,13 +41,10 @@ void setup() {
     Serial.println("Card failed, or not present");
   }
   arduinoSerial.println("");
-  WiFi.begin(ssid, password);
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
-  }
+  WiFiManager wifiManager;
+  wifiManager.autoConnect("DroneFenixAP");
   client.setServer(mqtt_server, 1883);
-  //client.setCallback(callback);
+  client.setCallback(callback);
   while(SD.exists(String(defaultFileName+defaultFileCounter+defaultFileExtension))){
     Serial.println("EXISTE: "+defaultFileName+defaultFileCounter+defaultFileExtension);
     Serial.println(SD.exists(String(defaultFileName+defaultFileCounter+defaultFileExtension)));  
@@ -70,10 +70,14 @@ void smartDelay(int timeWait){
       if(client.connected() ){
         Data = getValueStr(Data,'\r',0);
         String sendData1 = "";
-        for(int i = 0;i<=8;i++){
+        for(int i = 3;i<=11;i++){
           sendData1+= getValueStr(Data,sep,i) + sep;
         }
-        sendData1+= getValueStr(Data,sep,9);
+        sendData1+= getValueStr(Data,sep,0) + sep; //lat
+        sendData1+= getValueStr(Data,sep,1) + sep; //lon
+        sendData1+= getValueStr(Data,sep,2) + sep; //alt
+        sendData1+= releState; //Estado del rele
+        
         char msg[sendData1.length()];
         sendData1.toCharArray(msg,sendData1.length());
         client.publish(outTopic, msg);
@@ -146,12 +150,6 @@ void inicioDeAlmacenamiento(String fileNameAndExtension){
     Archivo.print(sep);
 
 
-    Archivo.print("Temperatura (CCS811)");
-    Archivo.print(sep);
-
-    Archivo.print("Temperatura (BMP180)");
-    Archivo.print(sep);
-
     Archivo.print("humedad (DHT11)");
     Archivo.print(sep);
 
@@ -166,7 +164,17 @@ void inicioDeAlmacenamiento(String fileNameAndExtension){
     Archivo.print(sep);  
 
     Archivo.print("presionAtmosferica (BMP180)");
+    Archivo.print(sep);
+
+     Archivo.print("Calidad de aire (MQ-4)");
+    Archivo.print(sep);
+
+     Archivo.print("Calidad de aire (MQ-135)");
+    Archivo.print(sep);
+    
+    Archivo.print("Fecha");
     Archivo.println(sep);
+    
     Archivo.close();
 }
 
@@ -211,7 +219,7 @@ void reconnect() {
       // Once connected, publish an announcement...
       client.publish(outTopic, "hello world");
       // ... and resubscribe
-      //client.subscribe(inTopic);
+      client.subscribe(inTopic);
     } else {
       Serial.print("failed, rc=");
       Serial.print(client.state());
@@ -223,4 +231,24 @@ void reconnect() {
   }
   
 }
-
+void callback(char* topic, byte* payload, unsigned int length) {
+  Serial.print("Message arrived [");
+  Serial.print(topic);
+  Serial.print("] ");
+  for (int i = 0; i < length; i++) {
+    Serial.print((char)payload[i]);
+  }
+  Serial.println();
+ 
+  // Switch on the LED if an 1 was received as first character
+  if ((char)payload[0] == '1') {
+    digitalWrite(BUILTIN_LED, LOW);   // Turn the LED on (Note that LOW is the voltage level
+    releState = false;
+    // but actually the LED is on; this is because
+    // it is acive low on the ESP-01)
+  } else {
+    digitalWrite(BUILTIN_LED, HIGH);  // Turn the LED off by making the voltage HIGH
+    releState = true;
+  }
+ 
+}
