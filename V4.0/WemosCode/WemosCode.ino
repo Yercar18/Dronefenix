@@ -258,6 +258,11 @@ void publishData(double temp, double hum, double presAlt, double alcoholPPM, dou
     root["D5"] = TVOC;  
     root["D6"] = CO2; 
     root["D7"] = Metano;  
+
+    
+    root["D8"] = latitud;  
+    root["D9"] = longitud; 
+    root["D10"] = fecha;  
         
     char JSONmessageBuffer[130];
     root.printTo(JSONmessageBuffer, sizeof(JSONmessageBuffer));
