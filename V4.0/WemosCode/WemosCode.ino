@@ -98,6 +98,7 @@ void loop() {
   Serial.println(serialData);
   saveDataSD(serialData);
   publishData(temp.toFloat(), hum.toFloat(), presAt.toFloat(), alcohol.toFloat(), tvoc.toFloat(), co2.toFloat(), metano.toFloat(), latitud, longitud, fecha);
+  Data = "";
   smartDelay(timeDelay);
 }
 void smartDelay(int timeWait){
@@ -109,6 +110,7 @@ void smartDelay(int timeWait){
     client.loop();
   
     getDataFromArduino();
+    
     Data = getValueStr(Data,'\r',0);
 
     //T .. Temporal
@@ -124,19 +126,20 @@ void smartDelay(int timeWait){
     {
       Serial.print("Guardado la informacion por que las mediciones han cambiado: ");
       Serial.println(serialData);
+
+      Serial.print("Data -- ");
+      Serial.println(Data);
       saveDataSD(serialData);
       publishData(tempT.toFloat(), humT.toFloat(), presAtT.toFloat(), alcoholT.toFloat(), tvocT.toFloat(), co2T.toFloat(), metanoT.toFloat(), latitud, longitud, fecha);
-      delay(timeDelay);
-    }
-    
+      Data = "";
+    }    
   }
 }
 void getDataFromArduino(){
-  while (arduinoSerial.available() > 0) {
-    char inByte = arduinoSerial.read();
-    Data += inByte;
+  char inByte;
+  if (arduinoSerial.available() > 0) {
+    Data = arduinoSerial.readStringUntil('/r');
     newData = true; 
-    yield();
   }
 }
 void saveDataSD(String Data){
