@@ -15,6 +15,7 @@
 #define BAUD_RATE 115200
 #define chipSelect D4
 #define timeDelay 5*60*1000 // 5 minutos * 60 segundos * 1000 milisegundos
+#define minTime timeDelay/2 //Tiempo minimo para enviar una actualizacion
 #define sep ','
 
 const char* mqtt_server = "68.183.31.237";
@@ -64,41 +65,6 @@ void setup() {
 }
 
 void loop() {
-  if (!client.connected()) {
-    reconnect();
-  }
-  client.loop();
-  
-  temp = getValueStr(Data,sep,0).toInt() > 0 ? getValueStr(Data,sep,0):"0";
-  hum = getValueStr(Data,sep,1).toInt() > 0 ? getValueStr(Data,sep,1):"0";
-  presAt = getValueStr(Data,sep,2).toInt() > 0 ? getValueStr(Data,sep,2):"0";
-  alcohol = getValueStr(Data,sep,3).toInt() > 0 ? getValueStr(Data,sep,3):"0";
-  tvoc = getValueStr(Data,sep,4).toInt() > 0 ? getValueStr(Data,sep,4):"0";
-  co2 = getValueStr(Data,sep,5).toInt() > 0 ? getValueStr(Data,sep,5):"0";
-  metano = getValueStr(Data,sep,6).toInt() > 0 ? getValueStr(Data,sep,6):"0";
-
-  latitud = getValueStr(Data,sep,7).toInt() > 0 ? getValueStr(Data,sep,7):"0";
-  longitud = getValueStr(Data,sep,8).toInt() > 0 ? getValueStr(Data,sep,8):"0";
-  fecha = getValueStr(Data,sep,9).toInt() > 0 ? getValueStr(Data,sep,9):"0";
-
-  serialData = "";
-  serialData += temp + sep;
-  serialData += hum + sep;
-  serialData += presAt + sep;
-  serialData += alcohol + sep;
-  serialData += tvoc + sep;
-  serialData += co2 + sep;
-  serialData += metano + sep;
-  
-  serialData += latitud + sep;
-  serialData += longitud + sep;
-  serialData += fecha;
-
-  Serial.print("Guardado en sd: ");
-  Serial.println(serialData);
-  saveDataSD(serialData);
-  publishData(temp.toFloat(), hum.toFloat(), presAt.toFloat(), alcohol.toFloat(), tvoc.toFloat(), co2.toFloat(), metano.toFloat(), latitud, longitud, fecha);
-  Data = "";
   smartDelay(timeDelay);
 }
 void smartDelay(int timeWait){
@@ -122,7 +88,27 @@ void smartDelay(int timeWait){
     co2T = getValueStr(Data,sep,5).toInt() > 0 ? getValueStr(Data,sep,5):"0";
     metanoT = getValueStr(Data,sep,6).toInt() > 0 ? getValueStr(Data,sep,6):"0";
 
-    if(abs(temp.toInt()-tempT.toInt()) >= 1 ||  abs(hum.toInt()-humT.toInt()) >= 1 ||  abs(presAt.toInt()-presAtT.toInt()) >= 1 ||  abs(alcohol.toInt()-alcoholT.toInt()) >= 1 ||  abs(tvoc.toInt()-tvocT.toInt()) >= 1 ||  abs(co2.toInt()-co2T.toInt()) >= 1 ||  abs(metano.toInt()-metanoT.toInt()) >= 1)
+    latitud = abs(getValueStr(Data,sep,7).toInt()) > 0 ? getValueStr(Data,sep,7):"0";
+    longitud = abs(getValueStr(Data,sep,8).toInt()) > 0 ? getValueStr(Data,sep,8):"0";
+    fecha = abs(getValueStr(Data,sep,9).toInt()) > 0 ? getValueStr(Data,sep,9):"0";
+    
+    serialData = "";
+    serialData += tempT + sep;
+    serialData += humT + sep;
+    serialData += presAtT + sep;
+    serialData += alcoholT + sep;
+    serialData += tvocT + sep;
+    serialData += co2T + sep;
+    serialData += metanoT + sep;
+    
+    serialData += latitud + sep;
+    serialData += longitud + sep;
+    serialData += fecha + sep;
+    
+    serialData += "https://www.google.com/maps/@" + latitud + "," + longitud + ",15z";
+
+
+    if(millis() - oldTime >= minTime  & (abs(temp.toInt()-tempT.toInt()) >= 1 ||  abs(hum.toInt()-humT.toInt()) >= 1 ||  abs(presAt.toInt()-presAtT.toInt()) >= 1 ||  abs(alcohol.toInt()-alcoholT.toInt()) >= 1 ||  abs(tvoc.toInt()-tvocT.toInt()) >= 1 ||  abs(co2.toInt()-co2T.toInt()) >= 1 ||  abs(metano.toInt()-metanoT.toInt()) >= 1))
     {
       Serial.print("Guardado la informacion por que las mediciones han cambiado: ");
       Serial.println(serialData);
@@ -132,6 +118,16 @@ void smartDelay(int timeWait){
       saveDataSD(serialData);
       publishData(tempT.toFloat(), humT.toFloat(), presAtT.toFloat(), alcoholT.toFloat(), tvocT.toFloat(), co2T.toFloat(), metanoT.toFloat(), latitud, longitud, fecha);
       Data = "";
+
+      temp = tempT;
+      hum = humT;
+      presAt = presAtT;
+      alcohol = alcoholT;
+      tvoc = tvoc;
+      co2T = co2;
+      metanoT = metano;
+
+      break;
     }    
   }
 }
@@ -242,7 +238,7 @@ void publishData(double temp, double hum, double presAlt, double alcoholPPM, dou
     // Inside the brackets, 200 is the size of the pool in bytes.
     // Don't forget to change this value to match your JSON document.
     // Use arduinojson.org/assistant to compute the capacity.
-    StaticJsonBuffer<200> jsonBuffer;
+    DynamicJsonBuffer jsonBuffer(260);
     // StaticJsonBuffer allocates memory on the stack, it can be
     // replaced by DynamicJsonBuffer which allocates in the heap.
     //
@@ -263,11 +259,11 @@ void publishData(double temp, double hum, double presAlt, double alcoholPPM, dou
     root["D7"] = Metano;  
 
     
-    root["D8"] = latitud;  
-    root["D9"] = longitud; 
-    root["D10"] = fecha;  
+    root["D8"] = stringToDouble(latitud); 
+    root["D9"] = stringToDouble(longitud); 
+    root["D10"] = stringToDouble(fecha);
         
-    char JSONmessageBuffer[130];
+    char JSONmessageBuffer[260];
     root.printTo(JSONmessageBuffer, sizeof(JSONmessageBuffer));
     Serial.println("Sending message to MQTT topic..");
     Serial.println(JSONmessageBuffer);
@@ -287,6 +283,10 @@ void publishData(double temp, double hum, double presAlt, double alcoholPPM, dou
       */
 }
 
+double stringToDouble(String & str)  // <-- notice the "&"
+{
+  return atof( str.c_str() );
+}
 void reconnect() {
   // Loop until we're reconnected
   while (!client.connected()) {

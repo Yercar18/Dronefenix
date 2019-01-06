@@ -54,7 +54,7 @@
 //Sensores MQ
 #define MQ135Pin A0
 #define arduino_sample_rate 1024
-
+#define decPrecision 7
 #define MQ4Pin A1
 
 
@@ -95,12 +95,12 @@ void showData(){
     Serial.println (isnan(tvoc)?0:tvoc);
     Serial.println (isnan(co2)?0:co2);
     Serial.println (isnan(metano)?0:metano);
-    Serial.println (isnan(latitud)?0:latitud);
-    Serial.println (isnan(longitud)?0:longitud);
+    Serial.println (isnan(latitud)?0:latitud, decPrecision);
+    Serial.println (isnan(longitud)?0:longitud, decPrecision);
     Serial.println (fecha);
 }
 void sendData(){
-  String Data = String(isnan(temp)?0:temp) + sep +  String(isnan(hum)?0:hum) + sep + String(isnan(presAt)?0:presAt) + sep + String(isnan(alcohol)?0:alcohol) +  sep  +  String(isnan(tvoc)?0:tvoc) + sep  +  String(isnan(co2)?0:co2) + sep  + String(isnan(metano)?0:metano)  + sep  + String(isnan(latitud)?0:latitud)  + sep  + String(isnan(longitud)?0:longitud) + sep + String(fecha) ;
+  String Data = String(isnan(temp)?0:temp) + sep +  String(isnan(hum)?0:hum) + sep + String(isnan(presAt)?0:presAt) + sep + String(isnan(alcohol)?0:alcohol) +  sep  +  String(isnan(tvoc)?0:tvoc) + sep  +  String(isnan(co2)?0:co2) + sep  + String(isnan(metano)?0:metano)  + sep  + String(isnan(latitud)?0:latitud, decPrecision)  + sep  + String(isnan(longitud)?0:longitud, decPrecision) + sep + String(fecha) ;
   weMoSerial.println(Data);
   Serial.print("Data writed:");
   Serial.println(Data);
