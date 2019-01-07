@@ -136,7 +136,7 @@ void readData()
     }
   
   //MQ-135 sensor
-  alcohol = mq4Sensor.readMetane();
+  alcohol = mq4Sensor.readAlcohol();
 
   //CCS TVOC/CO2
   if (ccs.dataAvailable()) {
@@ -146,7 +146,7 @@ void readData()
   }
 
   //MQ-4 Sensor
-  metano =  mq4Sensor.readAlcohol();
+  metano =  mq4Sensor.readMetane();
 
   //MQ-135 Sensor  
   int adc = analogRead(MQ135Pin);
