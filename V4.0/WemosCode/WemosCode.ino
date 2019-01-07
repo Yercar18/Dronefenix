@@ -27,7 +27,7 @@ const int serverPort = 1883;
 const String defaultFileName = "datos";
 const String defaultFileExtension = ".csv";
 
-String temp, hum, presAt, alcohol,tvoc, co2, metano, latitud, longitud;
+String temp, hum, presAt, alcohol,tvoc, co2, metano, NH4,  latitud, longitud;
 String fecha;
 //temporales
 String tempT, humT, presAtT, alcoholT,tvocT, co2T, metanoT;
@@ -87,10 +87,11 @@ void smartDelay(int timeWait){
     tvocT = getValueStr(Data,sep,4).toInt() > 0 ? getValueStr(Data,sep,4):"0";
     co2T = getValueStr(Data,sep,5).toInt() > 0 ? getValueStr(Data,sep,5):"0";
     metanoT = getValueStr(Data,sep,6).toInt() > 0 ? getValueStr(Data,sep,6):"0";
+    NH4 = abs(getValueStr(Data,sep,9).toInt()) > 0 ? getValueStr(Data,sep,7):"0";
 
-    latitud = abs(getValueStr(Data,sep,7).toInt()) > 0 ? getValueStr(Data,sep,7):"0";
-    longitud = abs(getValueStr(Data,sep,8).toInt()) > 0 ? getValueStr(Data,sep,8):"0";
-    fecha = abs(getValueStr(Data,sep,9).toInt()) > 0 ? getValueStr(Data,sep,9):"0";
+    latitud = abs(getValueStr(Data,sep,7).toInt()) > 0 ? getValueStr(Data,sep,8):"0";
+    longitud = abs(getValueStr(Data,sep,8).toInt()) > 0 ? getValueStr(Data,sep,9):"0";
+    fecha = abs(getValueStr(Data,sep,9).toInt()) > 0 ? getValueStr(Data,sep,10):"0";
     
     serialData = "";
     serialData += tempT + sep;
@@ -116,7 +117,7 @@ void smartDelay(int timeWait){
       Serial.print("Data -- ");
       Serial.println(Data);
       saveDataSD(serialData);
-      publishData(tempT.toFloat(), humT.toFloat(), presAtT.toFloat(), alcoholT.toFloat(), tvocT.toFloat(), co2T.toFloat(), metanoT.toFloat(), latitud, longitud, fecha);
+      publishData(tempT.toFloat(), humT.toFloat(), presAtT.toFloat(), alcoholT.toFloat(), tvocT.toFloat(), co2T.toFloat(), metanoT.toFloat(), NH4.toFloat(), latitud, longitud, fecha);
       Data = "";
 
       temp = tempT;
@@ -232,7 +233,7 @@ String getValueStr(String data, char separator, int index)
     }
     return found > index ? data.substring(strIndex[0], strIndex[1]) : "0";
 }
-void publishData(double temp, double hum, double presAlt, double alcoholPPM, double TVOC, double CO2, double Metano, String latitud, String longitud, String fecha){
+void publishData(double temp, double hum, double presAlt, double alcoholPPM, double TVOC, double CO2, double Metano, double NH4, String latitud, String longitud, String fecha){
     // Memory pool for JSON object tree.
     //
     // Inside the brackets, 200 is the size of the pool in bytes.
@@ -257,11 +258,12 @@ void publishData(double temp, double hum, double presAlt, double alcoholPPM, dou
     root["D5"] = TVOC;  
     root["D6"] = CO2; 
     root["D7"] = Metano;  
+    root["D8"] = NH4;  
 
     
-    root["D8"] = stringToDouble(latitud); 
-    root["D9"] = stringToDouble(longitud); 
-    root["D10"] = stringToDouble(fecha);
+    root["D9"] = stringToDouble(latitud); 
+    root["D10"] = stringToDouble(longitud); 
+    root["D11"] = stringToDouble(fecha);
         
     char JSONmessageBuffer[260];
     root.printTo(JSONmessageBuffer, sizeof(JSONmessageBuffer));
@@ -295,7 +297,7 @@ void reconnect() {
     if (client.connect("ESP8266Client")) {
       Serial.println("connected");
       // Once connected, publish an announcement...
-      client.publish(outTopic, "Testing SSAR");
+      client.publish(outTopic, "Testing");
       // ... and resubscribe
 
       client.subscribe(inTopic);
