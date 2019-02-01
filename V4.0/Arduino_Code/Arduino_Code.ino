@@ -68,7 +68,7 @@ TinyGPSPlus gps;
 SFE_BMP180 pressure;
 GAS_MQ4 mq4Sensor(MQ4Pin);
 //variables
-double temp, hum, presAt, alcohol,tvoc, co2, metano, NH4, latitud, longitud;
+double temp = 0, hum = 0, presAt = 0, alcohol = 0,tvoc = 0, co2 = 0, metano = 0, NH4 = 0, latitud = 0, longitud = 0;
 String fecha;
 
 
@@ -91,17 +91,24 @@ void showData(){
     Serial.println (isnan(temp)?0:temp);
     Serial.println (isnan(hum)?0:hum);
     Serial.println (isnan(presAt)?0:presAt);
-    Serial.println (isnan(alcohol)?0:alcohol);
+    Serial.println (alcohol);
     Serial.println (isnan(tvoc)?0:tvoc);
     Serial.println (isnan(co2)?0:co2);
-    Serial.println (isnan(metano)?0:metano);    
+    Serial.println (metano);    
     Serial.println (isnan(NH4)?0:NH4);
     Serial.println (isnan(latitud)?0:latitud, decPrecision);
     Serial.println (isnan(longitud)?0:longitud, decPrecision);
     Serial.println (fecha);
 }
 void sendData(){
-  String Data = String(isnan(temp)?0:temp) + sep +  String(isnan(hum)?0:hum) + sep + String(isnan(presAt)?0:presAt) + sep + String(isnan(alcohol)?0:alcohol) +  sep  +  String(isnan(tvoc)?0:tvoc) + sep  +  String(isnan(co2)?0:co2) + sep  + String(isnan(metano)?0:metano)  + sep + String(isnan(NH4)?0:NH4) + sep  + String(isnan(latitud)?0:latitud, decPrecision)  + sep  + String(isnan(longitud)?0:longitud, decPrecision) + sep + String(fecha) ;
+
+  //MQ-4 sensor
+  alcohol = abs(mq4Sensor.readAlcohol() < 0 ? 0:mq4Sensor.readAlcohol());
+  
+  //MQ-4 Sensor
+  metano =  abs(mq4Sensor.readMetane() < 0 ? 0:mq4Sensor.readMetane());
+  
+  String Data = String(isnan(temp)?0:temp) + sep +  String(isnan(hum)?0:hum) + sep + String(isnan(presAt)?0:presAt) + sep + String(alcohol) +  sep  +  String(isnan(tvoc)?0:tvoc) + sep  +  String(isnan(co2)?0:co2) + sep  + String(metano)  + sep + String(isnan(NH4)?0:NH4) + sep  + String(isnan(latitud)?0:latitud, decPrecision)  + sep  + String(isnan(longitud)?0:longitud, decPrecision) + sep + String(fecha) ;
   weMoSerial.println(Data);
   Serial.print("Data writed:");
   Serial.println(Data);
@@ -134,19 +141,16 @@ void readData()
         }
       }
     }
-  
-  //MQ-135 sensor
-  alcohol = mq4Sensor.readAlcohol();
 
+  Serial.print("Alcohol: ");
+  Serial.println(alcohol);
+  
   //CCS TVOC/CO2
   if (ccs.dataAvailable()) {
       ccs.readAlgorithmResults();
       co2 = ccs.getCO2();
       tvoc = ccs.getTVOC();
   }
-
-  //MQ-4 Sensor
-  metano =  mq4Sensor.readMetane();
 
   //MQ-135 Sensor  
   int adc = analogRead(MQ135Pin);
@@ -192,6 +196,8 @@ bool initSensors(){
   }
   avg = avg/10;
   MQ135_init(arduino_sample_rate,avg);
+  double R0 = mq4Sensor.calibrate();
+  mq4Sensor.setR0(R0);
   return true;
 }
 static void smartdelay(unsigned long ms)

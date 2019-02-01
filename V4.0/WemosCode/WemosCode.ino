@@ -31,7 +31,7 @@ String temp, hum, presAt, alcohol,tvoc, co2, metano, NH4,  latitud, longitud;
 String fecha;
 //temporales
 String tempT, humT, presAtT, alcoholT,tvocT, co2T, metanoT;
-
+int contadorSDFiles = 0; //Esto es para calcular cuantos archivos hay en la sd
 
 String Data = "", serialData;
 int defaultFileCounter = 0,contadorDatos = 0;
@@ -46,7 +46,7 @@ void setup() {
   Serial.begin(BAUD_RATE);
   arduinoSerial.begin(BAUD_RATE);
   if (!SD.begin(chipSelect)) {
-    Serial.println("SD CARD Lecture failed");
+    debugSerial("SD CARD Lecture failed");
   }
   
   WiFiManager wifiManager;
@@ -54,30 +54,51 @@ void setup() {
   client.setServer(mqtt_server, serverPort);
   client.setCallback(callback); 
 
-   while(SD.exists(String(defaultFileName+defaultFileCounter+defaultFileExtension))){
-    Serial.println("EXISTE: "+defaultFileName+defaultFileCounter+defaultFileExtension);
-    Serial.println(SD.exists(String(defaultFileName+defaultFileCounter+defaultFileExtension)));  
+   while(SD.exists(String(defaultFileName+defaultFileCounter+defaultFileExtension)) & contadorSDFiles<100){
+    debugSerial("EXISTE: "+defaultFileName+defaultFileCounter+defaultFileExtension);
     defaultFileCounter +=1;  
     delay(defaultFileCounter);
-  }
+    contadorSDFiles += 1;
+    }
+    debugSerial("Numero de archivos: " + String(contadorSDFiles));
+    if(contadorSDFiles >= 100)
+    {
+      defaultFileCounter = 0;
+      //Clean sd
+      for(int i = 0; i<=100 ; i++)
+      {
+          defaultFileCounter +=1; 
+          String nombre = defaultFileName+defaultFileCounter+defaultFileExtension;
+          SD.remove(nombre);
+          debugSerial("Eliminado = " + String(nombre));
+      }
+    }
     inicioDeAlmacenamiento(String(defaultFileName+defaultFileCounter+defaultFileExtension));// Esta funcion verifica la integridad del archivo y realiza la insecion de las caveceras
 
 }
 
+
 void loop() {
   smartDelay(timeDelay);
+}
+void debugSerial(String msg)
+{
+  Serial.println(msg);
 }
 void smartDelay(int timeWait){
   unsigned long oldTime = millis();
   while(millis()-oldTime<=timeWait){
     if (!client.connected()) {
       reconnect();
+      debugSerial("Reconectando MQTT");
     }
     client.loop();
-  
+    //debugSerial("Intentando obtener info del arduino");
     getDataFromArduino();
+    //debugSerial("Fin de la info del arduino");
     
     Data = getValueStr(Data,'\r',0);
+    //debugSerial("Data leida");
 
     //T .. Temporal
     tempT = getValueStr(Data,sep,0).toInt() > 0 ? getValueStr(Data,sep,0):"0";
@@ -108,15 +129,17 @@ void smartDelay(int timeWait){
     
     serialData += "https://www.google.com/maps/@" + latitud + "," + longitud + ",15z";
 
-
+    String fileName = String(defaultFileName+defaultFileCounter+defaultFileExtension);
+      
     if(millis() - oldTime >= minTime  & (abs(temp.toInt()-tempT.toInt()) >= 1 ||  abs(hum.toInt()-humT.toInt()) >= 1 ||  abs(presAt.toInt()-presAtT.toInt()) >= 1 ||  abs(alcohol.toInt()-alcoholT.toInt()) >= 1 ||  abs(tvoc.toInt()-tvocT.toInt()) >= 1 ||  abs(co2.toInt()-co2T.toInt()) >= 1 ||  abs(metano.toInt()-metanoT.toInt()) >= 1))
     {
-      Serial.print("Guardado la informacion por que las mediciones han cambiado: ");
-      Serial.println(serialData);
-
-      Serial.print("Data -- ");
-      Serial.println(Data);
-      saveDataSD(serialData);
+      debugSerial("Guardado la informacion por que las mediciones han cambiado:");
+      debugSerial(serialData);
+      
+      debugSerial("Data :");
+      debugSerial(Data);
+      saveDataSD(fileName,serialData);
+      
       publishData(tempT.toFloat(), humT.toFloat(), presAtT.toFloat(), alcoholT.toFloat(), tvocT.toFloat(), co2T.toFloat(), metanoT.toFloat(), NH4.toFloat(), latitud, longitud, fecha);
       Data = "";
 
@@ -127,10 +150,23 @@ void smartDelay(int timeWait){
       tvoc = tvoc;
       co2T = co2;
       metanoT = metano;
-
+     
+      freeSpaceReportSerial();
       break;
-    }    
+    }
+    else if(millis() - oldTime >= minTime )
+    {
+      debugSerial("No se ha guardado y el tiempo ha pasado");
+      saveLogSD("No se ha guardado y el tiempo ha pasado - " + fecha);
+      freeSpaceReportSerial();
+    }
   }
+}
+void freeSpaceReportSerial()
+{
+      uint32_t freeSpace = system_get_free_heap_size();
+      debugSerial("*************FREE MEMORY*******************");
+      debugSerial(String(freeSpace));
 }
 void getDataFromArduino(){
   char inByte;
@@ -139,16 +175,32 @@ void getDataFromArduino(){
     newData = true; 
   }
 }
-void saveDataSD(String Data){
-  if(validData & newData){
-    Archivo = SD.open(String(defaultFileName+defaultFileCounter+defaultFileExtension), FILE_WRITE);
+void saveDataSD(String fileNameAndExtension,String Data){
+     Archivo = SD.open(fileNameAndExtension, FILE_WRITE);  
     delay(1);
     Archivo.println(Data);
     delay(1);
     Archivo.close();
     contadorDatos++;
-    Serial.println("Data saved");
-  }
+   debugSerial("Data saved");
+}
+
+void saveLogSD(String Data){
+    
+    uint32_t freeSpace = system_get_free_heap_size();
+    
+    Archivo = SD.open(String("log.txt"), FILE_WRITE);
+    delay(1);
+    Archivo.println(Data);
+    delay(1);
+    contadorDatos++;
+    debugSerial("Log saved");
+
+    Archivo.println("*************FREE MEMORY*******************");
+     Archivo.println(String(freeSpace));
+    delay(1);
+    Archivo.close();
+      
 }
 
 
@@ -159,48 +211,59 @@ void callback(char* topic, byte* payload, unsigned int length) {
   for (int i = 0; i < length; i++) {
     Serial.print((char)payload[i]);
   }
-  Serial.println();
+  debugSerial("");
 }
 
 void inicioDeAlmacenamiento(String fileNameAndExtension){
   Archivo = SD.open(fileNameAndExtension, FILE_WRITE);  
-  Serial.println("EL ARCHIVO EN LA SD SE LLAMARA: "+fileNameAndExtension);
+  debugSerial("EL ARCHIVO EN LA SD SE LLAMARA: "+fileNameAndExtension);
     
 
     Archivo.println("SEP="+sep);
-    
+
+    delay(1);
     Archivo.print("Temperatura (ºC)");
     Archivo.print(sep);
-
+    
+    delay(1);
     Archivo.print("Humedad (%)");
     Archivo.print(sep);
 
+    delay(1);
     Archivo.print("Presion atmosferica (mBar)");
     Archivo.print(sep);
 
+    delay(1);
     Archivo.print("Alcohol (ppm)");
     Archivo.print(sep);
 
 
+    delay(1);
     Archivo.print("TVOC (ppm)");
     Archivo.print(sep);
 
     
+    delay(1);
     Archivo.print("CO2 (ppb)");
     Archivo.print(sep);
     
+    delay(1);
     Archivo.print("Gas metano (ppm)");
     Archivo.print(sep);
     
+    delay(1);
     Archivo.print("latitud");
     Archivo.print(sep);  
 
+    delay(1);
     Archivo.print("longitud");
     Archivo.print(sep);
     
+    delay(1);
     Archivo.print("Fecha");
     Archivo.println(sep);
     
+    delay(1);
     Archivo.close();
 }
 bool getValue(String data, char separator, int index)
@@ -267,13 +330,13 @@ void publishData(double temp, double hum, double presAlt, double alcoholPPM, dou
         
     char JSONmessageBuffer[260];
     root.printTo(JSONmessageBuffer, sizeof(JSONmessageBuffer));
-    Serial.println("Sending message to MQTT topic..");
-    Serial.println(JSONmessageBuffer);
+    debugSerial("Sending message to MQTT topic..");
+    debugSerial(JSONmessageBuffer);
     
     if (client.publish(outTopic, JSONmessageBuffer) == true) {
-      Serial.println("Success sending message");
+      debugSerial("Success sending message");
     } else {
-      Serial.println("Error sending message");
+      debugSerial("Error sending message");
     }
     /*
     root.printTo(Data); //Almaceno el json generado en la variable Data
@@ -295,7 +358,7 @@ void reconnect() {
     Serial.print("Attempting MQTT connection...");
     // Attempt to connect
     if (client.connect("ESP8266Client")) {
-      Serial.println("connected");
+      debugSerial("connected");
       // Once connected, publish an announcement...
       client.publish(outTopic, "Testing");
       // ... and resubscribe
@@ -304,7 +367,7 @@ void reconnect() {
     } else {
       Serial.print("failed, rc=");
       Serial.print(client.state());
-      Serial.println(" try again in 5 seconds");
+      debugSerial(" try again in 5 seconds");
       // Wait 5 seconds before retrying
       delay(5000);
     }
