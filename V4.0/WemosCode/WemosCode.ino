@@ -11,6 +11,10 @@
 #include <SD.h>   
 
 
+int numError = 0; //Contador para saber cuantas veces ocurre un error
+int maxNumError = 20; //Numero de errores maximo permitido antes de reiniciar el arduino
+
+
 #define ledWarning led_builtin
 #define BAUD_RATE 115200
 #define chipSelect D4
@@ -23,6 +27,7 @@ const char* outTopic = "droneFenix/2/estacion1";
 const char* inTopic = "droneFenix/2/estacion1IN";
 const char* wiFiname = "AirQ_droneFenix/2/estacion1";
 const int serverPort = 1883;
+unsigned long lastMQTTConnectionAttempt;
 
 const String defaultFileName = "datos";
 const String defaultFileExtension = ".csv";
@@ -30,7 +35,7 @@ const String defaultFileExtension = ".csv";
 String temp, hum, presAt, alcohol,tvoc, co2, metano, NH4,  latitud, longitud;
 String fecha;
 //temporales
-String tempT, humT, presAtT, alcoholT,tvocT, co2T, metanoT;
+String tempT, humT, presAtT, alcoholT,tvocT, co2T, metanoT, latitudT, longitudT, fechaT;
 int contadorSDFiles = 0; //Esto es para calcular cuantos archivos hay en la sd
 
 String Data = "", serialData;
@@ -39,20 +44,25 @@ boolean newData = false, validData = false;
 
 File Archivo;
 WiFiClient espClient;
-PubSubClient client(espClient);
+PubSubClient mqttClient(espClient);
 SoftwareSerial arduinoSerial(D3, D2, false, 256);// SoftwareSerial arduinoSerial(14, 12, false, 256);
 
 void setup() {
+  numError = 0;
   Serial.begin(BAUD_RATE);
   arduinoSerial.begin(BAUD_RATE);
   if (!SD.begin(chipSelect)) {
-    debugSerial("SD CARD Lecture failed");
+    reportError("SD CARD Lecture failed");
   }
   
   WiFiManager wifiManager;
-  wifiManager.autoConnect(wiFiname);
-  client.setServer(mqtt_server, serverPort);
-  client.setCallback(callback); 
+  if (!wifiManager.autoConnect(wiFiname)) {
+      saveLogSD("Connection to hostname failed, restarting in 5 seconds");
+      delay(5000);
+      ESP.reset();
+  }
+  mqttClient.setServer(mqtt_server, serverPort);
+  mqttClient.setCallback(callback); 
 
    while(SD.exists(String(defaultFileName+defaultFileCounter+defaultFileExtension)) & contadorSDFiles<100){
     debugSerial("EXISTE: "+defaultFileName+defaultFileCounter+defaultFileExtension);
@@ -74,7 +84,7 @@ void setup() {
       }
     }
     inicioDeAlmacenamiento(String(defaultFileName+defaultFileCounter+defaultFileExtension));// Esta funcion verifica la integridad del archivo y realiza la insecion de las caveceras
-
+    delay(2000);
 }
 
 
@@ -88,11 +98,30 @@ void debugSerial(String msg)
 void smartDelay(int timeWait){
   unsigned long oldTime = millis();
   while(millis()-oldTime<=timeWait){
-    if (!client.connected()) {
-      reconnect();
-      debugSerial("Reconectando MQTT");
+
+    if (!mqttClient.connected()) {
+      if(lastMQTTConnectionAttempt == 0 || millis() > lastMQTTConnectionAttempt + 3 * 60 * 1000) {
+        lastMQTTConnectionAttempt = millis();
+        
+        reportError("Trying to connect to mqtt");
+        if (mqttClient.connect("ESP8266Client")) {
+          //mqttClient.set_callback(mqttCallback);
+          char topic[50];
+          //sprintf(topic, "%s/+/+", settings.mqttTopic);
+          //mqttClient.subscribe(topic);
+          mqttClient.subscribe(inTopic);
+          debugSerial("MQTT connection OK");
+
+          //TODO multiple relays
+          //updateMQTT(0);
+        } else {
+          reportError("failed to reconnect MQTT");
+        }
+      }
+    } else {
+      mqttClient.loop();
     }
-    client.loop();
+    
     //debugSerial("Intentando obtener info del arduino");
     getDataFromArduino();
     //debugSerial("Fin de la info del arduino");
@@ -100,38 +129,79 @@ void smartDelay(int timeWait){
     Data = getValueStr(Data,'\r',0);
     //debugSerial("Data leida");
 
-    //T .. Temporal
-    tempT = getValueStr(Data,sep,0).toInt() > 0 ? getValueStr(Data,sep,0):"0";
-    humT = getValueStr(Data,sep,1).toInt() > 0 ? getValueStr(Data,sep,1):"0";
-    presAtT = getValueStr(Data,sep,2).toInt() > 0 ? getValueStr(Data,sep,2):"0";
-    alcoholT = getValueStr(Data,sep,3).toInt() > 0 ? getValueStr(Data,sep,3):"0";
-    tvocT = getValueStr(Data,sep,4).toInt() > 0 ? getValueStr(Data,sep,4):"0";
-    co2T = getValueStr(Data,sep,5).toInt() > 0 ? getValueStr(Data,sep,5):"0";
-    metanoT = getValueStr(Data,sep,6).toInt() > 0 ? getValueStr(Data,sep,6):"0";
-    NH4 = abs(getValueStr(Data,sep,9).toInt()) > 0 ? getValueStr(Data,sep,7):"0";
+    //T ..listo para enviar
+    int valuePointer = 0;
+    String initCharacter = getValueStr(Data,sep,valuePointer);
+    valuePointer++;
+    temp = getValueStr(Data,sep,valuePointer).toInt() > 0 ? getValueStr(Data,sep,valuePointer):"0";
+    valuePointer++;
+    hum = getValueStr(Data,sep,valuePointer).toInt() > 0 ? getValueStr(Data,sep,valuePointer):"0";
+    valuePointer++;
+    presAt = getValueStr(Data,sep,valuePointer).toInt() > 0 ? getValueStr(Data,sep,valuePointer):"0";
+    valuePointer++;
+    alcohol = getValueStr(Data,sep,valuePointer).toInt() > 0 ? getValueStr(Data,sep,valuePointer):"0";
+    valuePointer++;
+    tvoc = getValueStr(Data,sep,valuePointer).toInt() > 0 ? getValueStr(Data,sep,valuePointer):"0";
+    valuePointer++;
+    co2 = getValueStr(Data,sep,valuePointer).toInt() > 0 ? getValueStr(Data,sep,valuePointer):"0";
+    valuePointer++;
+    metano = getValueStr(Data,sep,valuePointer).toInt() > 0 ? getValueStr(Data,sep,valuePointer):"0";
+    valuePointer++;
+    NH4 = abs(getValueStr(Data,sep,valuePointer).toInt()) > 0 ? getValueStr(Data,sep,valuePointer):"0";
+    valuePointer++;
 
-    latitud = abs(getValueStr(Data,sep,7).toInt()) > 0 ? getValueStr(Data,sep,8):"0";
-    longitud = abs(getValueStr(Data,sep,8).toInt()) > 0 ? getValueStr(Data,sep,9):"0";
-    fecha = abs(getValueStr(Data,sep,9).toInt()) > 0 ? getValueStr(Data,sep,10):"0";
+    latitud = abs(getValueStr(Data,sep,valuePointer).toInt()) > 0 ? getValueStr(Data,sep,valuePointer):"0";
+    valuePointer++;
+    longitud = abs(getValueStr(Data,sep,valuePointer).toInt()) > 0 ? getValueStr(Data,sep,valuePointer):"0";
+    valuePointer++;
+    fecha = abs(getValueStr(Data,sep,valuePointer).toInt()) > 0 ? getValueStr(Data,sep,valuePointer):"0";
+    valuePointer++;
     
-    serialData = "";
-    serialData += tempT + sep;
-    serialData += humT + sep;
-    serialData += presAtT + sep;
-    serialData += alcoholT + sep;
-    serialData += tvocT + sep;
-    serialData += co2T + sep;
-    serialData += metanoT + sep;
+    String endCharacter = getValueStr(Data,sep,valuePointer);
     
-    serialData += latitud + sep;
-    serialData += longitud + sep;
-    serialData += fecha + sep;
-    
-    serialData += "https://www.google.com/maps/@" + latitud + "," + longitud + ",15z";
+    if(initCharacter == "INIT" && endCharacter == "END")
+    {
+      debugSerial("La informacion leida es valida");
+      //Si la informacion es integra se guarda.
+      tempT = temp;
+      humT = hum;
+      presAtT = presAt;
+      alcoholT = alcoholT;
+      tvocT = tvoc;
+      co2T = co2;
+      metanoT = metano;
+      latitudT = latitud;
+      longitudT = longitud;
+      fechaT = fecha;
 
+      
+      serialData = "";
+      serialData += tempT + sep;
+      serialData += humT + sep;
+      serialData += presAtT + sep;
+      serialData += alcoholT + sep;
+      serialData += tvocT + sep;
+      serialData += co2T + sep;
+      serialData += metanoT + sep;
+      
+      serialData += latitudT + sep;
+      serialData += longitudT + sep;
+      serialData += fechaT + sep;
+      
+      serialData += "https://www.google.com/maps/@" + latitud + "," + longitud + ",15z";
+      delay(5000);
+    }
+    else
+    {
+      debugSerial("La informacion leida es invalida");
+      debugSerial("Los caracteres de inicio y fin son:");
+      debugSerial(initCharacter);
+      debugSerial(endCharacter);
+      delay(500);
+    }
     String fileName = String(defaultFileName+defaultFileCounter+defaultFileExtension);
       
-    if(millis() - oldTime >= minTime  & (abs(temp.toInt()-tempT.toInt()) >= 1 ||  abs(hum.toInt()-humT.toInt()) >= 1 ||  abs(presAt.toInt()-presAtT.toInt()) >= 1 ||  abs(alcohol.toInt()-alcoholT.toInt()) >= 1 ||  abs(tvoc.toInt()-tvocT.toInt()) >= 1 ||  abs(co2.toInt()-co2T.toInt()) >= 1 ||  abs(metano.toInt()-metanoT.toInt()) >= 1))
+    if((millis() - oldTime >= minTime))
     {
       debugSerial("Guardado la informacion por que las mediciones han cambiado:");
       debugSerial(serialData);
@@ -150,14 +220,26 @@ void smartDelay(int timeWait){
       tvoc = tvoc;
       co2T = co2;
       metanoT = metano;
+
+      if(tempT == 0 && humT == 0)
+      {
+        reportError("Temperatura y humedad no pueden ser cero al mismo tiempo");
+      }
+      else if(tvocT == 0 && co2T == 0)
+      {
+       reportError("tvoc y co2 no pueden ser cero al mismo tiempo");
+      }
+      else if(presAtT == 0)
+      {
+       reportError("La presion atmosferica no puede ser cero");
+      }
      
-      freeSpaceReportSerial();
       break;
     }
     else if(millis() - oldTime >= minTime )
     {
       debugSerial("No se ha guardado y el tiempo ha pasado");
-      saveLogSD("No se ha guardado y el tiempo ha pasado - " + fecha);
+      reportError("No se ha guardado y el tiempo ha pasado - " + fecha);
       freeSpaceReportSerial();
     }
   }
@@ -183,6 +265,27 @@ void saveDataSD(String fileNameAndExtension,String Data){
     Archivo.close();
     contadorDatos++;
    debugSerial("Data saved");
+}
+
+void reportError(String msg)
+{
+  saveLogSD("****************Error detectado********************************");
+  String linea = "Consecutivo: " + String(numError) + " ***" + "Maximo permitido: " + String(maxNumError);
+  saveLogSD(linea);
+  saveLogSD(msg);
+
+  debugSerial("****************Error detectado********************************");
+  debugSerial(linea);
+  debugSerial(msg);
+  
+  numError++;
+  if(numError>=maxNumError)
+  {
+    WiFi.disconnect();
+    delay(1000);
+    ESP.reset();
+    delay(1000);
+  }
 }
 
 void saveLogSD(String Data){
@@ -333,11 +436,12 @@ void publishData(double temp, double hum, double presAlt, double alcoholPPM, dou
     debugSerial("Sending message to MQTT topic..");
     debugSerial(JSONmessageBuffer);
     
-    if (client.publish(outTopic, JSONmessageBuffer) == true) {
+    if (mqttClient.publish(outTopic, JSONmessageBuffer) == true) {
       debugSerial("Success sending message");
     } else {
-      debugSerial("Error sending message");
+      reportError("Error sending message");
     }
+    delay(10000);
     /*
     root.printTo(Data); //Almaceno el json generado en la variable Data
       Serial.print("El json es: "); Serial.println(Data);
@@ -351,25 +455,4 @@ void publishData(double temp, double hum, double presAlt, double alcoholPPM, dou
 double stringToDouble(String & str)  // <-- notice the "&"
 {
   return atof( str.c_str() );
-}
-void reconnect() {
-  // Loop until we're reconnected
-  while (!client.connected()) {
-    Serial.print("Attempting MQTT connection...");
-    // Attempt to connect
-    if (client.connect("ESP8266Client")) {
-      debugSerial("connected");
-      // Once connected, publish an announcement...
-      client.publish(outTopic, "Testing");
-      // ... and resubscribe
-
-      client.subscribe(inTopic);
-    } else {
-      Serial.print("failed, rc=");
-      Serial.print(client.state());
-      debugSerial(" try again in 5 seconds");
-      // Wait 5 seconds before retrying
-      delay(5000);
-    }
-  }
 }

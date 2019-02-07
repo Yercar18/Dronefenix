@@ -45,6 +45,9 @@
 //Def to send data
 #define sep ','
 #define decimalPlaces 4
+#define initialCharacter "INIT"
+#define endCharacter "END"
+
 //I2C Address
 #define master 1 //arduino pro mini
 #define slave 8 //wemos D1
@@ -88,17 +91,17 @@ void loop(){
 }
 void showData(){
     Serial.println ("------------ Sended data -------------- ");
-    Serial.println (isnan(temp)?0:temp);
-    Serial.println (isnan(hum)?0:hum);
-    Serial.println (isnan(presAt)?0:presAt);
-    Serial.println (alcohol);
-    Serial.println (isnan(tvoc)?0:tvoc);
-    Serial.println (isnan(co2)?0:co2);
-    Serial.println (metano);    
-    Serial.println (isnan(NH4)?0:NH4);
-    Serial.println (isnan(latitud)?0:latitud, decPrecision);
-    Serial.println (isnan(longitud)?0:longitud, decPrecision);
-    Serial.println (fecha);
+    Serial.print("Temp -- ");Serial.println (isnan(temp)?0:temp);
+    Serial.print("Hum -- ");Serial.println (isnan(hum)?0:hum);
+    Serial.print("Presion atmosferica -- ");Serial.println (isnan(presAt)?0:presAt);
+    Serial.print("Alcohol -- ");Serial.println (alcohol);
+    Serial.print("TVOC -- ");Serial.println (isnan(tvoc)?0:tvoc);
+    Serial.print("CO2 -- ");Serial.println (isnan(co2)?0:co2);
+    Serial.print("Metano -- ");Serial.println (metano);    
+    Serial.print("NH4 -- ");Serial.println (isnan(NH4)?0:NH4);
+    Serial.print("Latitud -- ");Serial.println (isnan(latitud)?0:latitud, decPrecision);
+    Serial.print("Longitud -- ");Serial.println (isnan(longitud)?0:longitud, decPrecision);
+    Serial.print("Fecha -- ");Serial.println (fecha);
 }
 void sendData(){
 
@@ -108,7 +111,7 @@ void sendData(){
   //MQ-4 Sensor
   metano =  abs(mq4Sensor.readMetane() < 0 ? 0:mq4Sensor.readMetane());
   
-  String Data = String(isnan(temp)?0:temp) + sep +  String(isnan(hum)?0:hum) + sep + String(isnan(presAt)?0:presAt) + sep + String(alcohol) +  sep  +  String(isnan(tvoc)?0:tvoc) + sep  +  String(isnan(co2)?0:co2) + sep  + String(metano)  + sep + String(isnan(NH4)?0:NH4) + sep  + String(isnan(latitud)?0:latitud, decPrecision)  + sep  + String(isnan(longitud)?0:longitud, decPrecision) + sep + String(fecha) ;
+  String Data = String(initialCharacter) + sep +  String(isnan(temp)?0:temp) + sep +  String(isnan(hum)?0:hum) + sep + String(isnan(presAt)?0:presAt) + sep + String(alcohol) +  sep  +  String(isnan(tvoc)?0:tvoc) + sep  +  String(isnan(co2)?0:co2) + sep  + String(metano)  + sep + String(isnan(NH4)?0:NH4) + sep  + String(isnan(latitud)?0:latitud, decPrecision)  + sep  + String(isnan(longitud)?0:longitud, decPrecision) + sep + String(fecha) + sep + String(endCharacter);
   weMoSerial.println(Data);
   Serial.print("Data writed:");
   Serial.println(Data);
@@ -142,8 +145,6 @@ void readData()
       }
     }
 
-  Serial.print("Alcohol: ");
-  Serial.println(alcohol);
   
   //CCS TVOC/CO2
   if (ccs.dataAvailable()) {
