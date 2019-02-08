@@ -56,10 +56,9 @@ void setup() {
   }
   
   WiFiManager wifiManager;
-  if (!wifiManager.autoConnect(wiFiname)) {
-      saveLogSD("Connection to hostname failed, restarting in 5 seconds");
+  while (!wifiManager.autoConnect(wiFiname)) {
+      reportError("Connection to hostname failed, restarting in 5 seconds");
       delay(5000);
-      ESP.reset();
   }
   mqttClient.setServer(mqtt_server, serverPort);
   mqttClient.setCallback(callback); 
@@ -269,10 +268,14 @@ void saveDataSD(String fileNameAndExtension,String Data){
 
 void reportError(String msg)
 {
+  
+  uint32_t freeSpace = system_get_free_heap_size();
+    
   saveLogSD("****************Error detectado********************************");
-  String linea = "Consecutivo: " + String(numError) + " ***" + "Maximo permitido: " + String(maxNumError);
+  String linea = "Consecutivo: " + String(numError) + " ***" + "Maximo permitido: " + String(maxNumError) + " ***FREE MEMORY: " + String(freeSpace);
   saveLogSD(linea);
   saveLogSD(msg);
+
 
   debugSerial("****************Error detectado********************************");
   debugSerial(linea);
@@ -282,15 +285,13 @@ void reportError(String msg)
   if(numError>=maxNumError)
   {
     WiFi.disconnect();
-    delay(1000);
-    ESP.reset();
-    delay(1000);
+    delay(5000);
+    ESP.restart();
+    delay(5000);
   }
 }
 
 void saveLogSD(String Data){
-    
-    uint32_t freeSpace = system_get_free_heap_size();
     
     Archivo = SD.open(String("log.txt"), FILE_WRITE);
     delay(1);
@@ -299,8 +300,6 @@ void saveLogSD(String Data){
     contadorDatos++;
     debugSerial("Log saved");
 
-    Archivo.println("*************FREE MEMORY*******************");
-     Archivo.println(String(freeSpace));
     delay(1);
     Archivo.close();
       
