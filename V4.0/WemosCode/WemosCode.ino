@@ -10,6 +10,8 @@
 #include <SPI.h>
 #include <SD.h>   
 
+bool serDebug = false; //Para activar o desactivar el debug serial
+
 
 int numError = 0; //Contador para saber cuantas veces ocurre un error
 int maxNumError = 20; //Numero de errores maximo permitido antes de reiniciar el arduino
@@ -49,7 +51,10 @@ SoftwareSerial arduinoSerial(D3, D2, false, 256);// SoftwareSerial arduinoSerial
 
 void setup() {
   numError = 0;
-  Serial.begin(BAUD_RATE);
+  if(serDebug)
+  {
+    Serial.begin(BAUD_RATE);
+  }
   arduinoSerial.begin(BAUD_RATE);
   if (!SD.begin(chipSelect)) {
     reportError("SD CARD Lecture failed");
@@ -92,7 +97,10 @@ void loop() {
 }
 void debugSerial(String msg)
 {
-  Serial.println(msg);
+  if(serDebug)
+  {
+    Serial.println(msg);
+  }
 }
 void smartDelay(int timeWait){
   unsigned long oldTime = millis();
@@ -307,11 +315,14 @@ void saveLogSD(String Data){
 
 
 void callback(char* topic, byte* payload, unsigned int length) {
-  Serial.print("Message arrived [");
-  Serial.print(topic);
-  Serial.print("] ");
+  debugSerial("Message arrived [");
+  debugSerial(topic);
+  debugSerial("] ");
   for (int i = 0; i < length; i++) {
-    Serial.print((char)payload[i]);
+    if(serDebug)
+    {
+      Serial.print((char)payload[i]);
+    }
   }
   debugSerial("");
 }
