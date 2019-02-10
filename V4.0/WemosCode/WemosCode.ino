@@ -10,7 +10,7 @@
 #include <SPI.h>
 #include <SD.h>   
 
-bool serDebug = false; //Para activar o desactivar el debug serial
+bool serDebug = true; //Para activar o desactivar el debug serial
 
 
 int numError = 0; //Contador para saber cuantas veces ocurre un error
@@ -24,12 +24,12 @@ int maxNumError = 20; //Numero de errores maximo permitido antes de reiniciar el
 #define minTime timeDelay/2 //Tiempo minimo para enviar una actualizacion
 #define sep ','
 
-const char* mqtt_server = "68.183.31.237";
+const char* mqtt_server = "157.230.174.83";
 const char* outTopic = "droneFenix/2/estacion1";
 const char* inTopic = "droneFenix/2/estacion1IN";
 const char* wiFiname = "AirQ_droneFenix/2/estacion1";
 const int serverPort = 1883;
-unsigned long lastMQTTConnectionAttempt;
+unsigned long lastMQTTConnectionAttempt, oldTime;
 
 const String defaultFileName = "datos";
 const String defaultFileExtension = ".csv";
@@ -41,8 +41,9 @@ String tempT, humT, presAtT, alcoholT,tvocT, co2T, metanoT, latitudT, longitudT,
 int contadorSDFiles = 0; //Esto es para calcular cuantos archivos hay en la sd
 
 String Data = "", serialData;
-int defaultFileCounter = 0,contadorDatos = 0;
+int defaultFileCounter = 0,contadorDatos = 0, contadorFallas = 0, contadorInfoValida = 0;
 boolean newData = false, validData = false;
+
 
 File Archivo;
 WiFiClient espClient;
@@ -95,17 +96,31 @@ void setup() {
 void loop() {
   smartDelay(timeDelay);
 }
+
+void debugSerialNCR(String msg)
+{
+  if(serDebug)
+  {
+    //Serial.listen();
+    //delay(1000); // Give it time to send a response or you'll get nothing!
+    Serial.print(msg);
+  }
+}
 void debugSerial(String msg)
 {
   if(serDebug)
   {
+    //Serial.listen();
+    //delay(1000); // Give it time to send a response or you'll get nothing!
     Serial.println(msg);
   }
 }
 void smartDelay(int timeWait){
-  unsigned long oldTime = millis();
-  while(millis()-oldTime<=timeWait){
+  String fileName = String(defaultFileName+defaultFileCounter+defaultFileExtension);
 
+  while((millis()-oldTime)<=timeWait){
+    
+    
     if (!mqttClient.connected()) {
       if(lastMQTTConnectionAttempt == 0 || millis() > lastMQTTConnectionAttempt + 3 * 60 * 1000) {
         lastMQTTConnectionAttempt = millis();
@@ -128,14 +143,16 @@ void smartDelay(int timeWait){
     } else {
       mqttClient.loop();
     }
-    
-    //debugSerial("Intentando obtener info del arduino");
-    getDataFromArduino();
-    //debugSerial("Fin de la info del arduino");
-    
-    Data = getValueStr(Data,'\r',0);
-    //debugSerial("Data leida");
 
+    if(!newData)
+    {
+      //debugSerial("Intentando obtener info del arduino");
+      getDataFromArduino();
+      //debugSerial("Fin de la info del arduino");
+    
+      Data = getValueStr(Data,'\r',0);
+      //debugSerial("Data leida");
+    }
     //T ..listo para enviar
     int valuePointer = 0;
     String initCharacter = getValueStr(Data,sep,valuePointer);
@@ -168,7 +185,16 @@ void smartDelay(int timeWait){
     
     if(initCharacter == "INIT" && endCharacter == "END")
     {
-      debugSerial("La informacion leida es valida");
+      if(contadorInfoValida <= 0 || contadorInfoValida >= 20)
+      {
+        debugSerial("La informacion leida es valida");
+        contadorInfoValida = 1;
+      }
+      else
+      {
+        debugSerialNCR(".");
+        contadorInfoValida ++;
+      }
       //Si la informacion es integra se guarda.
       tempT = temp;
       humT = hum;
@@ -200,17 +226,27 @@ void smartDelay(int timeWait){
     }
     else
     {
-      debugSerial("La informacion leida es invalida");
-      debugSerial("Los caracteres de inicio y fin son:");
-      debugSerial(initCharacter);
-      debugSerial(endCharacter);
-      delay(500);
+      if(contadorFallas <= 0 || contadorFallas >= 50)
+      {        
+        reportError("error leyendo el puerto serie, los caracteres no son los esperados");
+        contadorFallas = 1;
+        delay(3000);
+      }
+      else if(contadorFallas >0){
+        debugSerialNCR(".");
+        contadorFallas++;  
+      }
     }
-    String fileName = String(defaultFileName+defaultFileCounter+defaultFileExtension);
+    
+
+  }
+    debugSerial("He salido del while");
+    delay(10000);
+
       
-    if((millis() - oldTime >= minTime))
-    {
-      debugSerial("Guardado la informacion por que las mediciones han cambiado:");
+      
+      oldTime = millis();  
+      debugSerial("Guardado la informacion y enviandola por MQTT:");
       debugSerial(serialData);
       
       debugSerial("Data :");
@@ -219,14 +255,6 @@ void smartDelay(int timeWait){
       
       publishData(tempT.toFloat(), humT.toFloat(), presAtT.toFloat(), alcoholT.toFloat(), tvocT.toFloat(), co2T.toFloat(), metanoT.toFloat(), NH4.toFloat(), latitud, longitud, fecha);
       Data = "";
-
-      temp = tempT;
-      hum = humT;
-      presAt = presAtT;
-      alcohol = alcoholT;
-      tvoc = tvoc;
-      co2T = co2;
-      metanoT = metano;
 
       if(tempT == 0 && humT == 0)
       {
@@ -240,16 +268,11 @@ void smartDelay(int timeWait){
       {
        reportError("La presion atmosferica no puede ser cero");
       }
-     
-      break;
-    }
-    else if(millis() - oldTime >= minTime )
-    {
-      debugSerial("No se ha guardado y el tiempo ha pasado");
-      reportError("No se ha guardado y el tiempo ha pasado - " + fecha);
-      freeSpaceReportSerial();
-    }
-  }
+
+      newData = false;
+    
+    
+    
 }
 void freeSpaceReportSerial()
 {
@@ -259,9 +282,15 @@ void freeSpaceReportSerial()
 }
 void getDataFromArduino(){
   char inByte;
+  arduinoSerial.listen();
+  delay(1000); // Give it time to send a response or you'll get nothing!
   if (arduinoSerial.available() > 0) {
     Data = arduinoSerial.readStringUntil('/r');
     newData = true; 
+  }
+  else
+  {
+    newData = false;
   }
 }
 void saveDataSD(String fileNameAndExtension,String Data){
@@ -293,9 +322,8 @@ void reportError(String msg)
   if(numError>=maxNumError)
   {
     WiFi.disconnect();
-    delay(5000);
+    delay(500);
     ESP.restart();
-    delay(5000);
   }
 }
 
