@@ -15,34 +15,35 @@ bool serDebug = true; //Para activar o desactivar el debug serial
 
 int numError = 0; //Contador para saber cuantas veces ocurre un error
 int maxNumError = 20; //Numero de errores maximo permitido antes de reiniciar el arduino
-
+int consecutive = 0; //Webserver consecutive
 
 #define ledWarning led_builtin
 #define BAUD_RATE 115200
 #define chipSelect D4
-#define timeDelay 5*60*1000 // 5 minutos * 60 segundos * 1000 milisegundos
+#define timeDelay 0.4*60*1000 // 5 minutos * 60 segundos * 1000 milisegundos
 #define minTime timeDelay/2 //Tiempo minimo para enviar una actualizacion
 #define sep ','
 
-const char* mqtt_server = "157.230.174.83";
+//Server private onmotica and public bypass servers
+//info: https://github.com/mqtt/mqtt.github.io/wiki/public_brokers
+//static const char* mqtt_server[] = {"157.230.174.83", "test.mosquitto.org", "iot.eclipse.org", "broker.hivemq.com", "www.cloudmqtt.com", "mqtt.swifitch.cz", "mqtt.fluux.io", "console.solace.cloud"};
+static const char* mqtt_server[] = {"test.mosquitto.org", "iot.eclipse.org", "157.230.174.83"};
+const int serverPort = 1883;
+
 const char* outTopic = "droneFenix/2/estacion1";
 const char* inTopic = "droneFenix/2/estacion1IN";
+
 const char* wiFiname = "AirQ_droneFenix/2/estacion1";
-const int serverPort = 1883;
+
 unsigned long lastMQTTConnectionAttempt, oldTime;
 
-const String defaultFileName = "datos";
-const String defaultFileExtension = ".csv";
+const String defaultFileName = "datos", defaultFileExtension = ".csv";
 
-String temp, hum, presAt, alcohol,tvoc, co2, metano, NH4,  latitud, longitud;
-String fecha;
-//temporales
-String tempT, humT, presAtT, alcoholT,tvocT, co2T, metanoT, latitudT, longitudT, fechaT;
-int contadorSDFiles = 0; //Esto es para calcular cuantos archivos hay en la sd
 
-String Data = "", serialData;
-int defaultFileCounter = 0,contadorDatos = 0, contadorFallas = 0, contadorInfoValida = 0;
-boolean newData = false, validData = false;
+//variables string
+String tempT, humT, presAtT, alcoholT,tvocT, co2T, metanoT, latitudT, longitudT, fechaT, Data = "", serialData, fileName, temp, hum, presAt, alcohol,tvoc, co2, metano, NH4,  latitud, longitud, fecha;
+int contadorSDFiles = 0, defaultFileCounter = 0,contadorDatos = 0, contadorFallas = 0, contadorInfoValida = 0;
+boolean newData = false, validData = false, lectureReady = false;
 
 
 File Archivo;
@@ -66,11 +67,12 @@ void setup() {
       reportError("Connection to hostname failed, restarting in 5 seconds");
       delay(5000);
   }
-  mqttClient.setServer(mqtt_server, serverPort);
-  mqttClient.setCallback(callback); 
 
-   while(SD.exists(String(defaultFileName+defaultFileCounter+defaultFileExtension)) & contadorSDFiles<100){
-    debugSerial("EXISTE: "+defaultFileName+defaultFileCounter+defaultFileExtension);
+  setMQTTServer();
+
+   while(SD.exists(fileName) & (contadorSDFiles<100)){
+    fileName = String(defaultFileName+defaultFileCounter+defaultFileExtension);
+    debugSerial("EXISTE: "+ fileName);
     defaultFileCounter +=1;  
     delay(defaultFileCounter);
     contadorSDFiles += 1;
@@ -83,18 +85,37 @@ void setup() {
       for(int i = 0; i<=100 ; i++)
       {
           defaultFileCounter +=1; 
-          String nombre = defaultFileName+defaultFileCounter+defaultFileExtension;
-          SD.remove(nombre);
-          debugSerial("Eliminado = " + String(nombre));
+          fileName = defaultFileName+defaultFileCounter+defaultFileExtension;
+          SD.remove(fileName);
+          debugSerial("Eliminado = " + String(fileName));
+          delay(timeDelay/20);
       }
     }
-    inicioDeAlmacenamiento(String(defaultFileName+defaultFileCounter+defaultFileExtension));// Esta funcion verifica la integridad del archivo y realiza la insecion de las caveceras
-    delay(2000);
+    fileName = String(defaultFileName+defaultFileCounter+defaultFileExtension);    
+    inicioDeAlmacenamiento(fileName);// Esta funcion verifica la integridad del archivo y realiza la insecion de las caveceras
+    delay(timeDelay/10);
 }
 
 
 void loop() {
   smartDelay(timeDelay);
+}
+
+void setMQTTServer()
+{  
+  if(consecutive<=sizeof(mqtt_server) & consecutive!=0)
+  {
+    consecutive+=1;
+    debugSerial("Proximo servidor: " + String(mqtt_server[consecutive]));
+  }
+  else
+  {
+    consecutive = 0;
+    reportError("He probado con todos los broker, volvere a comenzar a probar");
+  }  
+  mqttClient.setServer(mqtt_server[consecutive], serverPort);
+  debugSerial("New broker connected: " + String(mqtt_server[consecutive]));
+  mqttClient.setCallback(callback); 
 }
 
 void debugSerialNCR(String msg)
@@ -115,35 +136,56 @@ void debugSerial(String msg)
     Serial.println(msg);
   }
 }
-void smartDelay(int timeWait){
-  String fileName = String(defaultFileName+defaultFileCounter+defaultFileExtension);
 
-  while((millis()-oldTime)<=timeWait){
-    
-    
-    if (!mqttClient.connected()) {
-      if(lastMQTTConnectionAttempt == 0 || millis() > lastMQTTConnectionAttempt + 3 * 60 * 1000) {
-        lastMQTTConnectionAttempt = millis();
-        
-        reportError("Trying to connect to mqtt");
-        if (mqttClient.connect("ESP8266Client")) {
-          //mqttClient.set_callback(mqttCallback);
-          char topic[50];
-          //sprintf(topic, "%s/+/+", settings.mqttTopic);
-          //mqttClient.subscribe(topic);
-          mqttClient.subscribe(inTopic);
-          debugSerial("MQTT connection OK");
-
-          //TODO multiple relays
-          //updateMQTT(0);
-        } else {
-          reportError("failed to reconnect MQTT");
-        }
-      }
-    } else {
-      mqttClient.loop();
+void smartDelay(int timeWait){   
+    publishValidateData(); 
+    while((millis()-oldTime)<=timeWait){
+      confirmIfMqttIsConnectedOrLoopMQTT();
+      readValidateAndSaveData();
     }
+    //debugSerial("He salido del while");
+    oldTime = millis();
+}
 
+void publishValidateData()
+{
+      if(Data!="" && newData)
+      {
+        
+      debugSerial("Guardado la informacion y enviandola por MQTT:");
+      debugSerial(serialData);
+      
+      debugSerial("Data :");
+      debugSerial(Data);
+      saveDataSD(fileName,serialData);
+      
+      publishData(tempT.toFloat(), humT.toFloat(), presAtT.toFloat(), alcoholT.toFloat(), tvocT.toFloat(), co2T.toFloat(), metanoT.toFloat(), NH4.toFloat(), latitud, longitud, fecha);
+      Data = "";
+
+      if(tempT == 0 && humT == 0)
+      {
+        reportError("Temperatura y humedad no pueden ser cero al mismo tiempo");
+      }
+      else if(tvocT == 0 && co2T == 0)
+      {
+       reportError("tvoc y co2 no pueden ser cero al mismo tiempo");
+      }
+      else if(presAtT == 0)
+      {
+       reportError("La presion atmosferica no puede ser cero");
+      }
+
+      String linea2 = "Estado WiFi: " + String(WiFi.status()) + " ,mqttEstatus: " + String(mqttClient.connected() + ", mqttServer: " + String(mqtt_server[consecutive]) );
+      debugSerial(linea2);
+      
+      newData = false, lectureReady = false;
+      
+      }
+}
+void readValidateAndSaveData()
+{
+  if(!lectureReady)
+  {
     if(!newData)
     {
       //debugSerial("Intentando obtener info del arduino");
@@ -153,6 +195,7 @@ void smartDelay(int timeWait){
       Data = getValueStr(Data,'\r',0);
       //debugSerial("Data leida");
     }
+    
     //T ..listo para enviar
     int valuePointer = 0;
     String initCharacter = getValueStr(Data,sep,valuePointer);
@@ -222,7 +265,9 @@ void smartDelay(int timeWait){
       serialData += fechaT + sep;
       
       serialData += "https://www.google.com/maps/@" + latitud + "," + longitud + ",15z";
-      delay(5000);
+      delay(timeDelay/4);
+      lectureReady = true;
+      debugSerial("La informacion fue leida exitosamente y esta a la espera de ser enviada");
     }
     else
     {
@@ -230,49 +275,48 @@ void smartDelay(int timeWait){
       {        
         reportError("error leyendo el puerto serie, los caracteres no son los esperados");
         contadorFallas = 1;
-        delay(3000);
+        delay(timeDelay/10);
       }
       else if(contadorFallas >0){
         debugSerialNCR(".");
         contadorFallas++;  
       }
     }
-    
-
   }
-    debugSerial("He salido del while");
-    delay(10000);
+}
 
-      
-      
-      oldTime = millis();  
-      debugSerial("Guardado la informacion y enviandola por MQTT:");
-      debugSerial(serialData);
-      
-      debugSerial("Data :");
-      debugSerial(Data);
-      saveDataSD(fileName,serialData);
-      
-      publishData(tempT.toFloat(), humT.toFloat(), presAtT.toFloat(), alcoholT.toFloat(), tvocT.toFloat(), co2T.toFloat(), metanoT.toFloat(), NH4.toFloat(), latitud, longitud, fecha);
-      Data = "";
+void confirmIfMqttIsConnectedOrLoopMQTT()
+{
+  if(!WiFi.isConnected())
+    {
+      delay(timeDelay);
+      reportError("WiFi is not connected");
+    }    
+     else if (!mqttClient.connected()) {
+      if(lastMQTTConnectionAttempt == 0 || millis() > lastMQTTConnectionAttempt + 3 * 60 * 1000) {
+        lastMQTTConnectionAttempt = millis();
+        
+        reportError("Trying to connect to mqtt");
+        setMQTTServer();
+        delay(1);
+        if (mqttClient.connect(inTopic)) {
+          //mqttClient.set_callback(mqttCallback);
+          char topic[50];
+          //sprintf(topic, "%s/+/+", settings.mqttTopic);
+          //mqttClient.subscribe(topic);
+          mqttClient.subscribe(inTopic);
+          debugSerial("MQTT connection OK");
 
-      if(tempT == 0 && humT == 0)
-      {
-        reportError("Temperatura y humedad no pueden ser cero al mismo tiempo");
+          //TODO multiple relays
+          //updateMQTT(0);
+        } else {
+          reportError("failed to reconnect MQTT");
+        }
       }
-      else if(tvocT == 0 && co2T == 0)
-      {
-       reportError("tvoc y co2 no pueden ser cero al mismo tiempo");
-      }
-      else if(presAtT == 0)
-      {
-       reportError("La presion atmosferica no puede ser cero");
-      }
-
-      newData = false;
-    
-    
-    
+    }
+    else {
+      mqttClient.loop();
+    }
 }
 void freeSpaceReportSerial()
 {
@@ -311,19 +355,21 @@ void reportError(String msg)
   saveLogSD("****************Error detectado********************************");
   String linea = "Consecutivo: " + String(numError) + " ***" + "Maximo permitido: " + String(maxNumError) + " ***FREE MEMORY: " + String(freeSpace);
   saveLogSD(linea);
+  String linea2 = "Estado WiFi: " + String(WiFi.status()) + " ,mqttEstatus: " + String(mqttClient.connected());
+  saveLogSD(linea2);
   saveLogSD(msg);
 
 
   debugSerial("****************Error detectado********************************");
   debugSerial(linea);
+  debugSerial(linea2);
   debugSerial(msg);
   
   numError++;
   if(numError>=maxNumError)
   {
-    WiFi.disconnect();
-    delay(500);
-    ESP.restart();
+    delay(timeDelay);
+    setup();
   }
 }
 
@@ -473,11 +519,18 @@ void publishData(double temp, double hum, double presAlt, double alcoholPPM, dou
     root.printTo(JSONmessageBuffer, sizeof(JSONmessageBuffer));
     debugSerial("Sending message to MQTT topic..");
     debugSerial(JSONmessageBuffer);
-    
-    if (mqttClient.publish(outTopic, JSONmessageBuffer) == true) {
-      debugSerial("Success sending message");
-    } else {
-      reportError("Error sending message");
+
+    bool isPublished = false;
+
+    while(!isPublished)
+    {
+      if (mqttClient.publish(outTopic, JSONmessageBuffer) == true) {
+        debugSerial("Success sending message");
+        isPublished = true;
+        break;
+      } else {
+        reportError("Error sending message");
+      }
     }
     delay(10000);
     /*
