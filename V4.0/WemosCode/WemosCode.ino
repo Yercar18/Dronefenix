@@ -6,6 +6,7 @@
 #include <DNSServer.h>
 #include <ESP8266WebServer.h>
 #include <WiFiManager.h>  
+#include <ESP8266HTTPClient.h>
 //For sd support
 #include <SPI.h>
 #include <SD.h>   
@@ -20,15 +21,21 @@ int consecutive = 0; //Webserver consecutive
 #define ledWarning led_builtin
 #define BAUD_RATE 115200
 #define chipSelect D4
-#define timeDelay 0.4*60*1000 // 5 minutos * 60 segundos * 1000 milisegundos
+#define timeDelay 4*60*1000 // 5 minutos * 60 segundos * 1000 milisegundos
 #define minTime timeDelay/2 //Tiempo minimo para enviar una actualizacion
 #define sep ','
+
+
+#define arduinoResetPin D1 //pin que comunica con el reset del arduino
+#define URL "http://airq.dronefenix.a2hosted.com/bot"
+#define banderaPeticionGet 6 //Maximo de publicaciones al broker antes de llamar a la pagina bot para despertar al hosting en caso que el iis haya apagado el servicio
 
 //Server private onmotica and public bypass servers
 //info: https://github.com/mqtt/mqtt.github.io/wiki/public_brokers
 //static const char* mqtt_server[] = {"157.230.174.83", "test.mosquitto.org", "iot.eclipse.org", "broker.hivemq.com", "www.cloudmqtt.com", "mqtt.swifitch.cz", "mqtt.fluux.io", "console.solace.cloud"};
 static const char* mqtt_server[] = {"test.mosquitto.org", "iot.eclipse.org", "157.230.174.83"};
 const int serverPort = 1883;
+
 
 const char* outTopic = "droneFenix/2/estacion1";
 const char* inTopic = "droneFenix/2/estacion1IN";
@@ -42,7 +49,7 @@ const String defaultFileName = "datos", defaultFileExtension = ".csv";
 
 //variables string
 String tempT, humT, presAtT, alcoholT,tvocT, co2T, metanoT, latitudT, longitudT, fechaT, Data = "", serialData, fileName, temp, hum, presAt, alcohol,tvoc, co2, metano, NH4,  latitud, longitud, fecha;
-int contadorSDFiles = 0, defaultFileCounter = 0,contadorDatos = 0, contadorFallas = 0, contadorInfoValida = 0;
+int contadorSDFiles = 0, defaultFileCounter = 0,contadorDatos = 0, contadorFallas = 0, contadorInfoValida = 0, contadorPublicaciones = 0;
 boolean newData = false, validData = false, lectureReady = false;
 
 
@@ -53,6 +60,8 @@ SoftwareSerial arduinoSerial(D3, D2, false, 256);// SoftwareSerial arduinoSerial
 
 void setup() {
   numError = 0;
+  pinMode(arduinoResetPin,OUTPUT);
+  digitalWrite(arduinoResetPin, LOW);
   if(serDebug)
   {
     Serial.begin(BAUD_RATE);
@@ -69,11 +78,11 @@ void setup() {
   }
 
   setMQTTServer();
-
+   fileName = String(defaultFileName+defaultFileCounter+defaultFileExtension);
    while(SD.exists(fileName) & (contadorSDFiles<100)){
+    defaultFileCounter +=1;  
     fileName = String(defaultFileName+defaultFileCounter+defaultFileExtension);
     debugSerial("EXISTE: "+ fileName);
-    defaultFileCounter +=1;  
     delay(defaultFileCounter);
     contadorSDFiles += 1;
     }
@@ -93,12 +102,39 @@ void setup() {
     }
     fileName = String(defaultFileName+defaultFileCounter+defaultFileExtension);    
     inicioDeAlmacenamiento(fileName);// Esta funcion verifica la integridad del archivo y realiza la insecion de las caveceras
-    delay(timeDelay/10);
+    digitalWrite(arduinoResetPin, HIGH);
+    getPetition();
+    delay(timeDelay*0.5);
 }
 
 
 void loop() {
   smartDelay(timeDelay);
+}
+
+void getPetition()
+{
+    debugSerial("Funcion peticion get" + WiFi.status());
+    if (WiFi.status() == WL_CONNECTED) { //Check WiFi connection status
+ 
+    HTTPClient http;  //Declare an object of class HTTPClient
+ 
+    http.begin(URL);  //Specify request destination
+    int httpCode = http.GET();                                                                  //Send the request
+ 
+    if (httpCode > 0) { //Check the returning code
+ 
+      //String payload = http.getString();   //Get the request response payload
+      debugSerial("Resultado de la peticion: ");
+      debugSerial(String(httpCode));
+      //debugSerial(payload);                     //Print the response payload
+ 
+    }
+ 
+    http.end();   //Close connection
+ 
+  }
+ 
 }
 
 void setMQTTServer()
@@ -228,16 +264,8 @@ void readValidateAndSaveData()
     
     if(initCharacter == "INIT" && endCharacter == "END")
     {
-      if(contadorInfoValida <= 0 || contadorInfoValida >= 20)
-      {
-        debugSerial("La informacion leida es valida");
-        contadorInfoValida = 1;
-      }
-      else
-      {
-        debugSerialNCR(".");
-        contadorInfoValida ++;
-      }
+      debugSerial("La informacion leida es valida");
+        
       //Si la informacion es integra se guarda.
       tempT = temp;
       humT = hum;
@@ -265,22 +293,15 @@ void readValidateAndSaveData()
       serialData += fechaT + sep;
       
       serialData += "https://www.google.com/maps/@" + latitud + "," + longitud + ",15z";
-      delay(timeDelay/4);
       lectureReady = true;
       debugSerial("La informacion fue leida exitosamente y esta a la espera de ser enviada");
     }
     else
     {
-      if(contadorFallas <= 0 || contadorFallas >= 50)
-      {        
+      
+        debugSerial("Data:" + Data);
         reportError("error leyendo el puerto serie, los caracteres no son los esperados");
         contadorFallas = 1;
-        delay(timeDelay/10);
-      }
-      else if(contadorFallas >0){
-        debugSerialNCR(".");
-        contadorFallas++;  
-      }
     }
   }
 }
@@ -368,7 +389,9 @@ void reportError(String msg)
   numError++;
   if(numError>=maxNumError)
   {
+    digitalWrite(arduinoResetPin, LOW);
     delay(timeDelay);
+    digitalWrite(arduinoResetPin, HIGH);
     setup();
   }
 }
@@ -517,7 +540,7 @@ void publishData(double temp, double hum, double presAlt, double alcoholPPM, dou
         
     char JSONmessageBuffer[260];
     root.printTo(JSONmessageBuffer, sizeof(JSONmessageBuffer));
-    debugSerial("Sending message to MQTT topic..");
+    debugSerialNCR("Mensaje listo para enviar por mqtt: ");
     debugSerial(JSONmessageBuffer);
 
     bool isPublished = false;
@@ -525,11 +548,22 @@ void publishData(double temp, double hum, double presAlt, double alcoholPPM, dou
     while(!isPublished)
     {
       if (mqttClient.publish(outTopic, JSONmessageBuffer) == true) {
-        debugSerial("Success sending message");
+        contadorPublicaciones++;
+        
+        debugSerial("El mensaje se ha publciado correctamente");
+        debugSerial("Contador publciaciones: " +  String(contadorPublicaciones) + " , bandera para hacer un GET: " + String(banderaPeticionGet));
+        
+        if(contadorPublicaciones>=banderaPeticionGet)
+        {
+          contadorPublicaciones = 0;
+          getPetition();
+        }
         isPublished = true;
         break;
       } else {
-        reportError("Error sending message");
+        reportError("Error publicando el mensaje en el broker");
+        delay(timeDelay*1.5);
+        confirmIfMqttIsConnectedOrLoopMQTT();
       }
     }
     delay(10000);
