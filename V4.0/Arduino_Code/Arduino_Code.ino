@@ -73,35 +73,64 @@ GAS_MQ4 mq4Sensor(MQ4Pin);
 //variables
 double temp = 0, hum = 0, presAt = 0, alcohol = 0,tvoc = 0, co2 = 0, metano = 0, NH4 = 0, latitud = 0, longitud = 0;
 String fecha;
+bool debug = true;
 
+void debugSerial(String msg)
+{
+  if(!debug)
+  {
+    Serial.println(msg);
+  }
+}
+void debugSerial(int msg)
+{
+  if(!debug)
+  {
+    Serial.println(msg);
+  }
+}
+void debugSerial(double msg)
+{
+  if(!debug)
+  {
+    Serial.println(msg);
+  }
+}
+void debugSerialNCR(String msg)
+{
+  if(!debug)
+  {
+    Serial.print(msg);
+  }
+}
 
 void setup(){
   if(!initSensors()){
-    Serial.println("init failed");
+    debugSerial("init failed");
   }
-  Serial.println("INIT OK");
+  debugSerial("INIT OK");
 }
 void loop(){
     readData();
-    Serial.println("read OK");
+    debugSerial("read OK");
     sendData();
     showData();
     smartdelay(timeDelay);
   
 }
 void showData(){
-    Serial.println ("------------ Sended data -------------- ");
-    Serial.print("Temp -- ");Serial.println (isnan(temp)?0:temp);
-    Serial.print("Hum -- ");Serial.println (isnan(hum)?0:hum);
-    Serial.print("Presion atmosferica -- ");Serial.println (isnan(presAt)?0:presAt);
-    Serial.print("Alcohol -- ");Serial.println (alcohol);
-    Serial.print("TVOC -- ");Serial.println (isnan(tvoc)?0:tvoc);
-    Serial.print("CO2 -- ");Serial.println (isnan(co2)?0:co2);
-    Serial.print("Metano -- ");Serial.println (metano);    
-    Serial.print("NH4 -- ");Serial.println (isnan(NH4)?0:NH4);
-    Serial.print("Latitud -- ");Serial.println (isnan(latitud)?0:latitud, decPrecision);
-    Serial.print("Longitud -- ");Serial.println (isnan(longitud)?0:longitud, decPrecision);
-    Serial.print("Fecha -- ");Serial.println (fecha);
+    debugSerial ("------------ Sended data -------------- ");
+    debugSerialNCR("Temp -- ");debugSerial(isnan(temp)?0:temp);
+    debugSerialNCR("Hum -- ");debugSerial(isnan(hum)?0:hum);
+    debugSerialNCR("Presion atmosferica -- ");debugSerial (isnan(presAt)?0:presAt);
+    debugSerialNCR("Alcohol -- ");debugSerial (alcohol);
+    debugSerialNCR("TVOC -- ");debugSerial (isnan(tvoc)?0:tvoc);
+    debugSerialNCR("CO2 -- ");debugSerial (isnan(co2)?0:co2);
+    debugSerialNCR("Metano -- ");debugSerial (metano);    
+    debugSerialNCR("NH4 -- ");debugSerial (isnan(NH4)?0:NH4);
+    debugSerialNCR("Latitud -- ");debugSerial (isnan(latitud)?0:latitud);
+    debugSerialNCR("Longitud -- ");debugSerial (isnan(longitud)?0:longitud);
+    debugSerialNCR("Fecha -- ");debugSerial (fecha);
 }
 void sendData(){
 
@@ -113,8 +142,8 @@ void sendData(){
   
   String Data = String(initialCharacter) + sep +  String(isnan(temp)?0:temp) + sep +  String(isnan(hum)?0:hum) + sep + String(isnan(presAt)?0:presAt) + sep + String(alcohol) +  sep  +  String(isnan(tvoc)?0:tvoc) + sep  +  String(isnan(co2)?0:co2) + sep  + String(metano)  + sep + String(isnan(NH4)?0:NH4) + sep  + String(isnan(latitud)?0:latitud, decPrecision)  + sep  + String(isnan(longitud)?0:longitud, decPrecision) + sep + String(fecha) + sep + String(endCharacter);
   weMoSerial.println(Data);
-  Serial.print("Data writed:");
-  Serial.println(Data);
+  debugSerialNCR("Data writed:");
+  debugSerial(Data);
 }
 void readData()
 {
@@ -166,16 +195,18 @@ void readData()
 
 bool initSensors(){
   Wire.begin();
-  
+  if(debug)
+  {
   Serial.begin(baudRateDebug);
-  Serial.println("INIT start");
+  }
+  debugSerial("INIT start");
 
   CCS811Core::status returnCode = ccs.begin();
-  Serial.print("begin exited with: ");
+  debugSerialNCR("begin exited with: ");
   printDriverError( returnCode );
   if (returnCode != CCS811Core::SENSOR_SUCCESS)
   {
-    Serial.println(".begin() returned with an error.");
+    debugSerial(".begin() returned with an error.");
     while (1); //Hang if there was a problem.
   } 
   
@@ -216,21 +247,21 @@ void printDriverError( CCS811Core::status errorCode )
   switch ( errorCode )
   {
     case CCS811Core::SENSOR_SUCCESS:
-      Serial.print("SUCCESS");
+      debugSerialNCR("SUCCESS");
       break;
     case CCS811Core::SENSOR_ID_ERROR:
-      Serial.print("ID_ERROR");
+      debugSerialNCR("ID_ERROR");
       break;
     case CCS811Core::SENSOR_I2C_ERROR:
-      Serial.print("I2C_ERROR");
+      debugSerialNCR("I2C_ERROR");
       break;
     case CCS811Core::SENSOR_INTERNAL_ERROR:
-      Serial.print("INTERNAL_ERROR");
+      debugSerialNCR("INTERNAL_ERROR");
       break;
     case CCS811Core::SENSOR_GENERIC_ERROR:
-      Serial.print("GENERIC_ERROR");
+      debugSerialNCR("GENERIC_ERROR");
       break;
     default:
-      Serial.print("Unspecified error.");
+      debugSerialNCR("Unspecified error.");
   }
 }
