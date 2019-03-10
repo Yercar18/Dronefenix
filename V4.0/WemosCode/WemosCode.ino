@@ -11,7 +11,7 @@
 #include <SPI.h>
 #include <SD.h>   
 
-bool serDebug = true; //Para activar o desactivar el debug serial
+bool serDebug = false; //Para activar o desactivar el debug serial
 
 
 int numError = 0; //Contador para saber cuantas veces ocurre un error
@@ -24,7 +24,7 @@ int consecutive = 0; //Webserver consecutive
 #define timeDelay 4*60*1000 // 5 minutos * 60 segundos * 1000 milisegundos
 #define minTime timeDelay/2 //Tiempo minimo para enviar una actualizacion
 #define sep ','
-
+#define minDelay 10 //delay min for try
 
 #define arduinoResetPin D1 //pin que comunica con el reset del arduino
 #define URL "http://airq.dronefenix.a2hosted.com/bot"
@@ -33,7 +33,8 @@ int consecutive = 0; //Webserver consecutive
 //Server private onmotica and public bypass servers
 //info: https://github.com/mqtt/mqtt.github.io/wiki/public_brokers
 //static const char* mqtt_server[] = {"157.230.174.83", "test.mosquitto.org", "iot.eclipse.org", "broker.hivemq.com", "www.cloudmqtt.com", "mqtt.swifitch.cz", "mqtt.fluux.io", "console.solace.cloud"};
-static const char* mqtt_server[] = {"test.mosquitto.org", "iot.eclipse.org", "157.230.174.83"};
+static const int count_mqtt_server = 3;
+static const char* mqtt_server[count_mqtt_server] = {"test.mosquitto.org", "iot.eclipse.org", "157.230.174.83"};
 const int serverPort = 1883;
 
 
@@ -74,9 +75,15 @@ void setup() {
   WiFiManager wifiManager;
   while (!wifiManager.autoConnect(wiFiname)) {
       reportError("Connection to hostname failed, restarting in 5 seconds");
-      delay(5000);
+      delay(minDelay*50);
   }
 
+  debugSerial("Numero de brokers: " + String(sizeof(mqtt_server)));
+  for(int i = 0; i <= count_mqtt_server - 1; i++)
+  {
+    debugSerial("Server" + String(i) +  ": " + String(mqtt_server[i]));
+  }
+  
   setMQTTServer();
    fileName = String(defaultFileName+defaultFileCounter+defaultFileExtension);
    while(SD.exists(fileName) & (contadorSDFiles<100)){
@@ -102,9 +109,16 @@ void setup() {
     }
     fileName = String(defaultFileName+defaultFileCounter+defaultFileExtension);    
     inicioDeAlmacenamiento(fileName);// Esta funcion verifica la integridad del archivo y realiza la insecion de las caveceras
+    debugSerial("****Confirmando que el servidor broker ha conectado exitosamente***");
+    while(!confirmIfMqttIsConnectedOrLoopMQTT())
+    {
+      debugSerial("MQTT ****Reconectando....****");
+      delay(minDelay*100);
+    }
+    debugSerial("MQTT ****Conexion exitosa*****");
     digitalWrite(arduinoResetPin, HIGH);
     getPetition();
-    delay(timeDelay*0.5);
+    delay(minDelay*2500);
 }
 
 
@@ -114,7 +128,7 @@ void loop() {
 
 void getPetition()
 {
-    debugSerial("Funcion peticion get" + WiFi.status());
+    debugSerial("Funcion peticion get - wifiStat: " + String(WiFi.status()));
     if (WiFi.status() == WL_CONNECTED) { //Check WiFi connection status
  
     HTTPClient http;  //Declare an object of class HTTPClient
@@ -134,12 +148,12 @@ void getPetition()
     http.end();   //Close connection
  
   }
- 
+ delay(timeDelay/2);
 }
 
 void setMQTTServer()
 {  
-  if(consecutive<=sizeof(mqtt_server) & consecutive!=0)
+  if(consecutive<=count_mqtt_server - 1)
   {
     consecutive+=1;
     debugSerial("Proximo servidor: " + String(mqtt_server[consecutive]));
@@ -174,10 +188,13 @@ void debugSerial(String msg)
 }
 
 void smartDelay(int timeWait){   
-    publishValidateData(); 
+    publishValidateData();  //Publicar informacion
+    while(!readValidateAndSaveData())
+    {
+      delay(minDelay); //Esperar a que se lea el arduino
+    }
     while((millis()-oldTime)<=timeWait){
-      confirmIfMqttIsConnectedOrLoopMQTT();
-      readValidateAndSaveData();
+      mqttClient.loop(); //Esperar el tiempo prudente
     }
     //debugSerial("He salido del while");
     oldTime = millis();
@@ -218,7 +235,7 @@ void publishValidateData()
       
       }
 }
-void readValidateAndSaveData()
+bool readValidateAndSaveData()
 {
   if(!lectureReady)
   {
@@ -295,48 +312,71 @@ void readValidateAndSaveData()
       serialData += "https://www.google.com/maps/@" + latitud + "," + longitud + ",15z";
       lectureReady = true;
       debugSerial("La informacion fue leida exitosamente y esta a la espera de ser enviada");
+      debugSerial("Serial: " + serialData);
+      delay(minDelay*1000);
+      return true;
     }
     else
     {
       
         debugSerial("Data:" + Data);
-        reportError("error leyendo el puerto serie, los caracteres no son los esperados");
-        contadorFallas = 1;
+        reportError("error leyendo el puerto serie, los caracteres no son los esperados - contador errores: " + String(contadorFallas));
+        contadorFallas ++;
+        delay(minDelay*1000);
+        if(contadorFallas >=5)
+        {
+          debugSerial("Decidido, no entiendo. Reiniciando el arduino");
+          reportError("Reinicio de arduino por falla de comunicacion");
+          digitalWrite(arduinoResetPin, LOW);
+          delay(minDelay*100);
+          digitalWrite(arduinoResetPin, HIGH);
+          delay(minDelay*1200);
+          contadorFallas = 0;
+        }
+        return false;
     }
+  }
+  else
+  {
+    return true;
   }
 }
 
-void confirmIfMqttIsConnectedOrLoopMQTT()
+bool confirmIfMqttIsConnectedOrLoopMQTT()
 {
   if(!WiFi.isConnected())
     {
       delay(timeDelay);
       reportError("WiFi is not connected");
+      return false;
     }    
      else if (!mqttClient.connected()) {
-      if(lastMQTTConnectionAttempt == 0 || millis() > lastMQTTConnectionAttempt + 3 * 60 * 1000) {
+      debugSerial("MQTT no conectado");
+      if(lastMQTTConnectionAttempt == 0 || millis() > lastMQTTConnectionAttempt + 3 * 1000) {
         lastMQTTConnectionAttempt = millis();
         
-        reportError("Trying to connect to mqtt");
-        setMQTTServer();
-        delay(1);
-        if (mqttClient.connect(inTopic)) {
-          //mqttClient.set_callback(mqttCallback);
-          char topic[50];
+        while (!mqttClient.connect(inTopic)) {   
+          setMQTTServer();
+          reportError("Trying to connect to mqtt: " + String(mqtt_server[consecutive]));  
+          delay(minDelay*100);
           //sprintf(topic, "%s/+/+", settings.mqttTopic);
           //mqttClient.subscribe(topic);
-          mqttClient.subscribe(inTopic);
-          debugSerial("MQTT connection OK");
 
           //TODO multiple relays
           //updateMQTT(0);
-        } else {
-          reportError("failed to reconnect MQTT");
-        }
+        }        
+          mqttClient.subscribe(inTopic);
+          debugSerial("MQTT connection OK - " + String(mqtt_server[consecutive]));
+          return true;
+      }
+      else
+      {
+        return false;
       }
     }
     else {
       mqttClient.loop();
+      return true;
     }
 }
 void freeSpaceReportSerial()
@@ -348,7 +388,7 @@ void freeSpaceReportSerial()
 void getDataFromArduino(){
   char inByte;
   arduinoSerial.listen();
-  delay(1000); // Give it time to send a response or you'll get nothing!
+  delay(minDelay*100); // Give it time to send a response or you'll get nothing!
   if (arduinoSerial.available() > 0) {
     Data = arduinoSerial.readStringUntil('/r');
     newData = true; 
@@ -360,9 +400,9 @@ void getDataFromArduino(){
 }
 void saveDataSD(String fileNameAndExtension,String Data){
      Archivo = SD.open(fileNameAndExtension, FILE_WRITE);  
-    delay(1);
+    delay(minDelay);
     Archivo.println(Data);
-    delay(1);
+    delay(minDelay);
     Archivo.close();
     contadorDatos++;
    debugSerial("Data saved");
@@ -370,42 +410,49 @@ void saveDataSD(String fileNameAndExtension,String Data){
 
 void reportError(String msg)
 {
-  
-  uint32_t freeSpace = system_get_free_heap_size();
-    
-  saveLogSD("****************Error detectado********************************");
-  String linea = "Consecutivo: " + String(numError) + " ***" + "Maximo permitido: " + String(maxNumError) + " ***FREE MEMORY: " + String(freeSpace);
-  saveLogSD(linea);
-  String linea2 = "Estado WiFi: " + String(WiFi.status()) + " ,mqttEstatus: " + String(mqttClient.connected());
-  saveLogSD(linea2);
-  saveLogSD(msg);
 
-
-  debugSerial("****************Error detectado********************************");
-  debugSerial(linea);
-  debugSerial(linea2);
-  debugSerial(msg);
-  
-  numError++;
-  if(numError>=maxNumError)
+  if(numError!=0)
   {
-    digitalWrite(arduinoResetPin, LOW);
-    delay(timeDelay);
-    digitalWrite(arduinoResetPin, HIGH);
-    setup();
+    uint32_t freeSpace = system_get_free_heap_size();
+      
+    saveLogSD("****************Error detectado********************************");
+    String linea = "Consecutivo: " + String(numError) + " ***" + "Maximo permitido: " + String(maxNumError) + " ***FREE MEMORY: " + String(freeSpace);
+    saveLogSD(linea);
+    String linea2 = "Estado WiFi: " + String(WiFi.status()) + " ,mqttEstatus: " + String(mqttClient.connected());
+    saveLogSD(linea2);
+    saveLogSD(msg);
+  
+  
+    debugSerial("****************Error detectado********************************");
+    debugSerial(linea);
+    debugSerial(linea2);
+    debugSerial(msg);
+    
+    numError++;
+    if(numError>=maxNumError)
+    {
+      digitalWrite(arduinoResetPin, LOW);
+      delay(timeDelay);
+      digitalWrite(arduinoResetPin, HIGH);
+      setup();
+    } 
+  }
+  else
+  {
+    numError++; //Only if error  == 0
   }
 }
 
 void saveLogSD(String Data){
     
     Archivo = SD.open(String("log.txt"), FILE_WRITE);
-    delay(1);
+    delay(minDelay);
     Archivo.println(Data);
-    delay(1);
+    delay(minDelay);
     contadorDatos++;
     debugSerial("Log saved");
 
-    delay(1);
+    delay(minDelay);
     Archivo.close();
       
 }
@@ -431,49 +478,49 @@ void inicioDeAlmacenamiento(String fileNameAndExtension){
 
     Archivo.println("SEP="+sep);
 
-    delay(1);
+    delay(minDelay);
     Archivo.print("Temperatura (ºC)");
     Archivo.print(sep);
     
-    delay(1);
+    delay(minDelay);
     Archivo.print("Humedad (%)");
     Archivo.print(sep);
 
-    delay(1);
+    delay(minDelay);
     Archivo.print("Presion atmosferica (mBar)");
     Archivo.print(sep);
 
-    delay(1);
+    delay(minDelay);
     Archivo.print("Alcohol (ppm)");
     Archivo.print(sep);
 
 
-    delay(1);
+    delay(minDelay);
     Archivo.print("TVOC (ppm)");
     Archivo.print(sep);
 
     
-    delay(1);
+    delay(minDelay);
     Archivo.print("CO2 (ppb)");
     Archivo.print(sep);
     
-    delay(1);
+    delay(minDelay);
     Archivo.print("Gas metano (ppm)");
     Archivo.print(sep);
     
-    delay(1);
+    delay(minDelay);
     Archivo.print("latitud");
     Archivo.print(sep);  
 
-    delay(1);
+    delay(minDelay);
     Archivo.print("longitud");
     Archivo.print(sep);
     
-    delay(1);
+    delay(minDelay);
     Archivo.print("Fecha");
     Archivo.println(sep);
     
-    delay(1);
+    delay(minDelay);
     Archivo.close();
 }
 bool getValue(String data, char separator, int index)
@@ -507,6 +554,7 @@ String getValueStr(String data, char separator, int index)
     return found > index ? data.substring(strIndex[0], strIndex[1]) : "0";
 }
 void publishData(double temp, double hum, double presAlt, double alcoholPPM, double TVOC, double CO2, double Metano, double NH4, String latitud, String longitud, String fecha){
+    confirmIfMqttIsConnectedOrLoopMQTT();
     // Memory pool for JSON object tree.
     //
     // Inside the brackets, 200 is the size of the pool in bytes.
@@ -559,14 +607,15 @@ void publishData(double temp, double hum, double presAlt, double alcoholPPM, dou
           getPetition();
         }
         isPublished = true;
+        debugSerial("Publicado!!! :)");
         break;
       } else {
         reportError("Error publicando el mensaje en el broker");
+        debugSerial("result -- " + String(confirmIfMqttIsConnectedOrLoopMQTT()));
         delay(timeDelay*1.5);
-        confirmIfMqttIsConnectedOrLoopMQTT();
       }
     }
-    delay(10000);
+    delay(minDelay*100);
     /*
     root.printTo(Data); //Almaceno el json generado en la variable Data
       Serial.print("El json es: "); Serial.println(Data);
