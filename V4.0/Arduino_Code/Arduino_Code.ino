@@ -241,27 +241,3 @@ static void smartdelay(unsigned long ms)
       gps.encode(gpsSerial.read());
   } while (millis() - start < ms);
 }
-//to this function to see what the output was.
-void printDriverError( CCS811Core::status errorCode )
-{
-  switch ( errorCode )
-  {
-    case CCS811Core::SENSOR_SUCCESS:
-      debugSerialNCR("SUCCESS");
-      break;
-    case CCS811Core::SENSOR_ID_ERROR:
-      debugSerialNCR("ID_ERROR");
-      break;
-    case CCS811Core::SENSOR_I2C_ERROR:
-      debugSerialNCR("I2C_ERROR");
-      break;
-    case CCS811Core::SENSOR_INTERNAL_ERROR:
-      debugSerialNCR("INTERNAL_ERROR");
-      break;
-    case CCS811Core::SENSOR_GENERIC_ERROR:
-      debugSerialNCR("GENERIC_ERROR");
-      break;
-    default:
-      debugSerialNCR("Unspecified error.");
-  }
-}
