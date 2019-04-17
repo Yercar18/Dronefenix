@@ -79,7 +79,7 @@ void publicarData(double temp, double hum, double presAlt, double alcoholPPM, do
     char JSONmessageBuffer[260];
     root.printTo(JSONmessageBuffer, sizeof(JSONmessageBuffer));
     debugSerialNCR("Mensaje listo para enviar por mqtt: ");
-    debugSerial(JSONmessageBuffer);
+    if(serDebug) Serial.println(JSONmessageBuffer);
 
     bool isPublished = false;
 
@@ -88,8 +88,8 @@ void publicarData(double temp, double hum, double presAlt, double alcoholPPM, do
       if (mqttClient.publish(outTopic, JSONmessageBuffer) == true) {
         contadorPublicaciones++;
         
-        debugSerial("El mensaje se ha publciado correctamente");
-        debugSerial("Contador publciaciones: " +  String(contadorPublicaciones) + " , bandera para hacer un GET: " + String(banderaPeticionGet));
+        if(serDebug) Serial.println("El mensaje se ha publciado correctamente");
+        if(serDebug) Serial.println("Contador publciaciones: " +  String(contadorPublicaciones) + " , bandera para hacer un GET: " + String(banderaPeticionGet));
         
         if(contadorPublicaciones>=banderaPeticionGet)
         {
@@ -97,11 +97,11 @@ void publicarData(double temp, double hum, double presAlt, double alcoholPPM, do
           getPetition();
         }
         isPublished = true;
-        debugSerial("Publicado!!! :)");
+        if(serDebug) Serial.println("Publicado!!! :)");
         break;
       } else {
         reportError("Error publicando el mensaje en el broker");
-        debugSerial("result -- " + String(confirmIfMqttIsConnectedOrLoopMQTT()));
+        if(serDebug) Serial.println("result -- " + String(confirmIfMqttIsConnectedOrLoopMQTT()));
         delay(timeDelay*1.5);
       }
     }
@@ -137,7 +137,7 @@ void MQTT_PROCESS::setMQTTServer()
 
 void MQTT_PROCESS::getPetition()
 {
-    debugSerial("Funcion peticion get - wifiStat: " + String(WiFi.status()));
+    if(serDebug) Serial.println("Funcion peticion get - wifiStat: " + String(WiFi.status()));
     if (WiFi.status() == WL_CONNECTED) { //Check WiFi connection status
  
     HTTPClient http;  //Declare an object of class HTTPClient
@@ -148,9 +148,9 @@ void MQTT_PROCESS::getPetition()
     if (httpCode > 0) { //Check the returning code
  
       //String payload = http.getString();   //Get the request response payload
-      debugSerial("Resultado de la peticion: ");
-      debugSerial(String(httpCode));
-      //debugSerial(payload);                     //Print the response payload
+      if(serDebug) Serial.println("Resultado de la peticion: ");
+      if(serDebug) Serial.println(String(httpCode));
+      //if(serDebug) Serial.println(payload);                     //Print the response payload
  
     }
  
@@ -171,7 +171,7 @@ bool confirmIfMqttIsConnectedOrLoopMQTT()
       return false;
     }    
      else if (!mqttClient.connected()) {
-      debugSerial("MQTT no conectado");
+      if(serDebug) Serial.println("MQTT no conectado");
       if(lastMQTTConnectionAttempt == 0 || millis() > lastMQTTConnectionAttempt + 3 * 1000) {
         lastMQTTConnectionAttempt = millis();
         
@@ -186,7 +186,7 @@ bool confirmIfMqttIsConnectedOrLoopMQTT()
           //updateMQTT(0);
         }        
           mqttClient.subscribe(inTopic);
-          debugSerial("MQTT connection OK - " + String(mqtt_server[consecutive]));
+          if(serDebug) Serial.println("MQTT connection OK - " + String(mqtt_server[consecutive]));
           return true;
       }
       else
@@ -201,14 +201,14 @@ bool confirmIfMqttIsConnectedOrLoopMQTT()
 }
 
 void callback(char* topic, byte* payload, unsigned int length) {
-  debugSerial("Message arrived [");
-  debugSerial(topic);
-  debugSerial("] ");
+  Serial.println("Message arrived [");
+  if(serDebug) Serial.println(topic);
+  if(serDebug) Serial.println("] ");
   for (int i = 0; i < length; i++) {
     if(serDebug)
     {
       Serial.print((char)payload[i]);
     }
   }
-  debugSerial("");
+  if(serDebug) Serial.println("");
 }

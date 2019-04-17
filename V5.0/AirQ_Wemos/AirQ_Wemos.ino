@@ -14,6 +14,6 @@ void loop() {
   while((millis()-oldTime)<=timeDelay){
   
   }
-  //debugSerial("He salido del while");
+  //if(serDebug) Serial.println("He salido del while");
   oldTime = millis();
 }
