@@ -92,7 +92,6 @@ void MQTT_PROCESS::publicarData(double temp, double hum, double presAlt, double 
         if(serDebug) Serial.println("Publicado!!! :)");
         break;
       } else {
-        reportError("Error publicando el mensaje en el broker");
         if(serDebug) Serial.println("result -- " + String(confirmIfMqttIsConnectedOrLoopMQTT()));
         delay(timeDelay*1.5);
       }
