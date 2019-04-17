@@ -1,18 +1,19 @@
 #include "SERIAL_COMMUNICATION.h"
+#include "configuration.h"
 
 SERIAL_COMMUNICATION serial;
 
 unsigned long oldTime;
 
 void setup() {
-  serial.inicializar();
- }
+    serial.inicializar();
+}
 
 
 void loop() {
   while((millis()-oldTime)<=timeDelay){
-      mqttClient.loop(); //Esperar el tiempo prudente
-    }
-    //debugSerial("He salido del while");
-    oldTime = millis();
+  
+  }
+  //debugSerial("He salido del while");
+  oldTime = millis();
 }

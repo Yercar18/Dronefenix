@@ -9,31 +9,37 @@ const String defaultFileName = "datos", defaultFileExtension = ".csv";
 
 File Archivo;
 
+void SD_PROCESS::setFileCounter(int val){
+     __defaultFileCounter = val;
+}
+
 String SD_PROCESS::inicializar(){
   if (!SD.begin(chipSelect) & serDebug) {
     Serial.println("SD CARD Lecture failed");
   }
-
+  
   //Busca el nombre de archivo
-  fileName = String(defaultFileName+defaultFileCounter+defaultFileExtension);
-   while(SD.exists(fileName) & (contadorSDFiles<100)){
-    defaultFileCounter +=1;  
-    fileName = String(defaultFileName+defaultFileCounter+defaultFileExtension);
-    debugSerial("EXISTE: "+ fileName);
-    delay(defaultFileCounter);
+  String fileName = String(defaultFileName+__defaultFileCounter+defaultFileExtension);
+  int contadorSDFiles = 0;
+  
+  while(SD.exists(fileName) & (contadorSDFiles<100)){
+    __defaultFileCounter +=1;  
+    fileName = String(defaultFileName+__defaultFileCounter+defaultFileExtension);
+    Serial.println("EXISTE: "+ fileName);
+    delay(__defaultFileCounter);
     contadorSDFiles += 1;
     }
-    debugSerial("Numero de archivos: " + String(contadorSDFiles));
+    Serial.println("Numero de archivos: " + String(contadorSDFiles));
     if(contadorSDFiles >= 100)
     {
-      defaultFileCounter = 0;
+      __defaultFileCounter = 0;
       //Clean sd
       for(int i = 0; i<=100 ; i++)
       {
-          defaultFileCounter +=1; 
-          fileName = defaultFileName+defaultFileCounter+defaultFileExtension;
+          __defaultFileCounter +=1; 
+          fileName = defaultFileName+__defaultFileCounter+defaultFileExtension;
           SD.remove(fileName);
-          debugSerial("Eliminado = " + String(fileName));
+          Serial.println("Eliminado = " + String(fileName));
           delay(timeDelay/20);
       }
     }
@@ -64,7 +70,6 @@ void SD_PROCESS::reportError(String msg)
     delay(minDelay);
     Archivo.println(linea);
     delay(minDelay);
-    contadorDatos++;
     Serial.println("Log saved");
 
     delay(minDelay);

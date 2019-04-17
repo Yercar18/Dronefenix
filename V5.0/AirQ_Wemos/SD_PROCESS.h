@@ -9,6 +9,9 @@ class SD_PROCESS {
     void guardarInfo(String fileNameAndExtension,String Data);
     void guardarEncabezados();
     void reportError(String msg);
+    void setFileCounter(int val);
+  private:
+    int __defaultFileCounter;
 };
 
 

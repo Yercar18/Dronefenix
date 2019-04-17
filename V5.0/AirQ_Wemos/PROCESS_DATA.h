@@ -9,6 +9,7 @@ class PROCESS_DATA {
     bool getValue(String data, char separator, int index);
     String getValueStr(String data, char separator, int index);
     double stringToDouble(String & str);
+    
 };
 
 

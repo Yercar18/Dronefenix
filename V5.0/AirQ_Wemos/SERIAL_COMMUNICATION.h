@@ -6,7 +6,7 @@
 class SERIAL_COMMUNICATION {
   public:
     void inicializar();
-    boolean leerArduino();
+    String leerArduino();
     boolean compararUltimaLectura();
 };
 

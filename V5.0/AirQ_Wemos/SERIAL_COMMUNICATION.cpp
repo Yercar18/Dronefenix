@@ -13,21 +13,17 @@ void SERIAL_COMMUNICATION::inicializar(){
   }
 }
 
-boolean SERIAL_COMMUNICATION::leerArduino(){
+String SERIAL_COMMUNICATION::leerArduino(){
+  String Data;
   char inByte;
   arduinoSerial.listen();
   delay(minDelay*100); // Give it time to send a response or you'll get nothing!
   if (arduinoSerial.available() > 0) {
     Data = arduinoSerial.readStringUntil('/r');
-    newData = true; 
   }
-  else
-  {
-    newData = false;
-  }
-  return newData;
+  return Data;
 }
 
 boolean SERIAL_COMMUNICATION::compararUltimaLectura(){
-  return dht.readHumidity();
+  return true;
 }
