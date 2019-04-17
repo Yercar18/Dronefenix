@@ -43,8 +43,7 @@ void MQTT_PROCESS::inicializar(){
   
 }
 
-void publicarData(double temp, double hum, double presAlt, double alcoholPPM, double TVOC, double CO2, double Metano, double NH4, String latitud, String longitud, String fecha){
-    confirmIfMqttIsConnectedOrLoopMQTT();
+void MQTT_PROCESS::publicarData(double temp, double hum, double presAlt, double alcoholPPM, double TVOC, double CO2, double Metano, double NH4, double latitud, double longitud, double fecha){
     // Memory pool for JSON object tree.
     //
     // Inside the brackets, 200 is the size of the pool in bytes.
@@ -72,13 +71,13 @@ void publicarData(double temp, double hum, double presAlt, double alcoholPPM, do
     root["D8"] = NH4;  
 
     
-    root["D9"] = stringToDouble(latitud); 
-    root["D10"] = stringToDouble(longitud); 
-    root["D11"] = stringToDouble(fecha);
+    root["D9"] = latitud; 
+    root["D10"] = longitud; 
+    root["D11"] =  fecha;
         
     char JSONmessageBuffer[260];
     root.printTo(JSONmessageBuffer, sizeof(JSONmessageBuffer));
-    debugSerialNCR("Mensaje listo para enviar por mqtt: ");
+    if(serDebug) Serial.println("Mensaje listo para enviar por mqtt: ");
     if(serDebug) Serial.println(JSONmessageBuffer);
 
     bool isPublished = false;
@@ -86,7 +85,6 @@ void publicarData(double temp, double hum, double presAlt, double alcoholPPM, do
     while(!isPublished)
     {
       if (mqttClient.publish(outTopic, JSONmessageBuffer) == true) {
-        contadorPublicaciones++;
         
         if(serDebug) Serial.println("El mensaje se ha publciado correctamente");
         if(serDebug) Serial.println("Contador publciaciones: " +  String(contadorPublicaciones) + " , bandera para hacer un GET: " + String(banderaPeticionGet));
@@ -116,6 +114,10 @@ void publicarData(double temp, double hum, double presAlt, double alcoholPPM, do
       */
 }
 
+double MQTT_PROCESS::stringToDouble(String & str)  // <-- notice the "&"
+{
+  return atof( str.c_str() );
+}
 void MQTT_PROCESS::setMQTTServer()
 {  
   if(consecutive<=count_mqtt_server - 1)
@@ -162,7 +164,7 @@ void MQTT_PROCESS::getPetition()
 
 
 
-bool confirmIfMqttIsConnectedOrLoopMQTT()
+bool MQTT_PROCESS::confirmIfMqttIsConnectedOrLoopMQTT()
 {
   if(!WiFi.isConnected())
     {
@@ -200,7 +202,7 @@ bool confirmIfMqttIsConnectedOrLoopMQTT()
     }
 }
 
-void callback(char* topic, byte* payload, unsigned int length) {
+void MQTT_PROCESS::callback(char* topic, byte* payload, unsigned int length) {
   Serial.println("Message arrived [");
   if(serDebug) Serial.println(topic);
   if(serDebug) Serial.println("] ");

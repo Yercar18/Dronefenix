@@ -5,7 +5,7 @@
 
 class SD_PROCESS {
   public:
-    String inicializar();
+    void inicializar();
     void guardarInfo(String fileNameAndExtension,String Data);
     void guardarEncabezados();
     void reportError(String msg, int freeSpace, String WiFiStatus, String mqttStatus);
@@ -14,6 +14,7 @@ class SD_PROCESS {
   private:
     int __defaultFileCounter;
     int __numError;
+    String __fileNameAndExtension;
 };
 
 

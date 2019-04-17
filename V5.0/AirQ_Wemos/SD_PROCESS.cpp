@@ -16,7 +16,7 @@ void SD_PROCESS::setNumError(int val){
      __numError = val;
 }
 
-String SD_PROCESS::inicializar(){
+void SD_PROCESS::inicializar(){
   if (!SD.begin(chipSelect) & serDebug) {
     Serial.println("SD CARD Lecture failed");
   }
@@ -46,7 +46,7 @@ String SD_PROCESS::inicializar(){
           delay(timeDelay/20);
       }
     }
-    return fileName;
+    __fileNameAndExtension = fileName;
 }
 
 void SD_PROCESS::guardarInfo(String fileNameAndExtension,String Data){
@@ -88,7 +88,7 @@ void SD_PROCESS::reportError(String msg, int freeSpace, String WiFiStatus, Strin
     if(serDebug)  Serial.println(msg);
     
     __numError++;
-    if(numError>=maxNumError)
+    if(__numError>=maxNumError)
     {
       if(serDebug)  Serial.println("Reseting arduino");
       digitalWrite(arduinoResetPin, LOW);
@@ -105,8 +105,8 @@ void SD_PROCESS::reportError(String msg, int freeSpace, String WiFiStatus, Strin
 
 
 void SD_PROCESS::guardarEncabezados(){
-  Archivo = SD.open(fileNameAndExtension, FILE_WRITE);  
-  if(serDebug) Serial.println("EL ARCHIVO EN LA SD SE LLAMARA: "+fileNameAndExtension);
+  Archivo = SD.open(__fileNameAndExtension, FILE_WRITE);  
+  if(serDebug) Serial.println("EL ARCHIVO EN LA SD SE LLAMARA: "+__fileNameAndExtension);
     
 
     Archivo.println("SEP="+sep);
