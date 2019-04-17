@@ -87,13 +87,7 @@ void MQTT_PROCESS::publicarData(double temp, double hum, double presAlt, double 
       if (mqttClient.publish(outTopic, JSONmessageBuffer) == true) {
         
         if(serDebug) Serial.println("El mensaje se ha publciado correctamente");
-        if(serDebug) Serial.println("Contador publciaciones: " +  String(contadorPublicaciones) + " , bandera para hacer un GET: " + String(banderaPeticionGet));
         
-        if(contadorPublicaciones>=banderaPeticionGet)
-        {
-          contadorPublicaciones = 0;
-          getPetition();
-        }
         isPublished = true;
         if(serDebug) Serial.println("Publicado!!! :)");
         break;
