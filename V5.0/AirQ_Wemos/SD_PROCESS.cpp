@@ -12,6 +12,9 @@ File Archivo;
 void SD_PROCESS::setFileCounter(int val){
      __defaultFileCounter = val;
 }
+void SD_PROCESS::setNumError(int val){
+     __numError = val;
+}
 
 String SD_PROCESS::inicializar(){
   if (!SD.begin(chipSelect) & serDebug) {
@@ -55,15 +58,15 @@ void SD_PROCESS::guardarInfo(String fileNameAndExtension,String Data){
     if(serDebug) Serial.println("Data saved");
 }
 
-void SD_PROCESS::reportError(String msg)
+void SD_PROCESS::reportError(String msg, int freeSpace, String WiFiStatus, String mqttStatus)
 {
 
-  if(numError!=0)
+  if(__numError!=0)
   {
     uint32_t freeSpace = 0;
       
     String linea = ("****************Error detectado********************************");
-    linea += "\r\n" + "Consecutivo: " + String(numError) + " ***" + "Maximo permitido: " + String(maxNumError) + " ***FREE MEMORY: " + String(freeSpace);
+    linea = linea + "\r\n" + "Consecutivo: " + String(__numError) + " ***" + "Maximo permitido: " + String(maxNumError) + " ***FREE MEMORY: " + String(freeSpace);
     
     Archivo = SD.open(String("log.txt"), FILE_WRITE);
     delay(minDelay);
@@ -74,7 +77,7 @@ void SD_PROCESS::reportError(String msg)
     delay(minDelay);
     Archivo.close();
     
-    String linea2 = "Estado WiFi: " + String(WiFi.status()) + " ,mqttEstatus: " + String(mqttClient.connected());
+    String linea2 = "Estado WiFi: " + WiFiStatus + " ,mqttEstatus: " + mqttStatus;
     if(serDebug) Serial.println(linea2);
     if(serDebug) Serial.println(msg);
   
@@ -84,7 +87,7 @@ void SD_PROCESS::reportError(String msg)
     if(serDebug)  Serial.println(linea2);
     if(serDebug)  Serial.println(msg);
     
-    numError++;
+    __numError++;
     if(numError>=maxNumError)
     {
       if(serDebug)  Serial.println("Reseting arduino");
@@ -96,7 +99,7 @@ void SD_PROCESS::reportError(String msg)
   }
   else
   {
-    numError++; //Only if error  == 0
+    __numError++; //Only if error  == 0
   }
 }
 
