@@ -52,8 +52,7 @@ void SD_PROCESS::guardarInfo(String fileNameAndExtension,String Data){
     Archivo.println(Data);
     delay(minDelay);
     Archivo.close();
-    contadorDatos++;
-   debugSerial("Data saved");
+    debugSerial("Data saved");
 }
 
 void SD_PROCESS::reportError(String msg)
