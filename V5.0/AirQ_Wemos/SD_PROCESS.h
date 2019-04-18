@@ -6,7 +6,7 @@
 class SD_PROCESS {
   public:
     void inicializar();
-    void guardarInfo(String fileNameAndExtension,String Data);
+    void guardarInfo(String Data);
     void guardarEncabezados();
     void reportError(String msg, int freeSpace, String WiFiStatus, String mqttStatus);
     void setFileCounter(int val);

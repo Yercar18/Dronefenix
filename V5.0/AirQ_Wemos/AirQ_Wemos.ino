@@ -1,20 +1,54 @@
-#include "SERIAL_COMMUNICATION.h"
+#include "SERIAL_COMMUNICATION.h"ç
+#include "PROCESS_DATA.h"
+#include "SD_PROCESS.h"
 #include "configuration.h"
 
 SERIAL_COMMUNICATION serial;
+PROCESS_DATA procesamiento;
+SD_PROCESS memoriaSD;
 
-unsigned long oldTime;
+unsigned long oldTime = 0;
 
 void setup() {
+
+    memoriaSD.setFileCounter(0);
+    memoriaSD.setNumError(0);
+    
     serial.inicializar();
-    Serial.println("Saliendo del setup");
+    memoriaSD.inicializar();
+    
+    if(serDebug) Serial.println("Saliendo del setup");
 }
 
 
 void loop() {
   while((millis()-oldTime)<=timeDelay){
     String informacion = serial.leerArduino();
-    Serial.println(informacion);
+    if(procesamiento.procesarInformacion(informacion))
+    {
+      //Si la informacion es valida se debe proceder a guardar en la SD y enviar al MQTT server
+      String lineaSDCard = procesamiento.mensajeSDTabulado();
+      memoriaSD.guardarInfo(lineaSDCard);
+      if(serDebug) Serial.println("Guardado en la sd: " + lineaSDCard);
+      
+      //Mensaje MQTT
+      double temperatura = procesamiento.leerTemperatura();
+      double humedad = procesamiento.leerHumedad();
+      double presionAmosferica = procesamiento.leerPresionAtmosferica();
+      int tvoc =  procesamiento.leerTVOC();
+      int co2 = procesamiento.leerCO2();
+      int alcohol = procesamiento.leerAlcohol();
+      int metano = procesamiento.leerMetano();
+      int NH4 = procesamiento.leerNH4();
+      float latitud = procesamiento.leerLatitud();
+      float longitud = procesamiento.leerLongitud();
+      double fecha = procesamiento.leerFecha();
+
+      String json2MQTT = procesamiento.ensamblarMensajeJSON(temperatura, humedad, presionAmosferica, alcohol, tvoc, co2, metano, NH4, latitud, longitud, fecha);
+
+      
+      if(serDebug) Serial.println("json: " + json2MQTT);  
+    }
   }
   if(serDebug) Serial.println("He salido del while");
   oldTime = millis();

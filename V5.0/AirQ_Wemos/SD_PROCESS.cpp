@@ -49,8 +49,8 @@ void SD_PROCESS::inicializar(){
     __fileNameAndExtension = fileName;
 }
 
-void SD_PROCESS::guardarInfo(String fileNameAndExtension,String Data){
-    Archivo = SD.open(fileNameAndExtension, FILE_WRITE);  
+void SD_PROCESS::guardarInfo(String Data){
+    Archivo = SD.open(__fileNameAndExtension, FILE_WRITE);  
     delay(minDelay);
     Archivo.println(Data);
     delay(minDelay);

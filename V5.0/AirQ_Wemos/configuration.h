@@ -39,5 +39,6 @@
 
 #define initialCharacter "Inicio"
 #define endCharacter "Final"
+#define tabulador "\t"
 
 #endif // CONFIGURATION_H
