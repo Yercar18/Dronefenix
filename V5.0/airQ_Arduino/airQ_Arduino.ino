@@ -57,5 +57,4 @@ void loop() {
   }
   
   GPSSensor.smartdelay(timeDelay);
-
 }
