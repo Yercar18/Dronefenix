@@ -70,29 +70,27 @@ void SD_PROCESS::guardarInfo(String Data){
     if(serDebug) Serial.println("Data saved");
 }
 
-void SD_PROCESS::saveIntoLogMsg(String msg, int freeSpace, String WiFiStatus, String mqttStatus)
+void SD_PROCESS::saveIntoLogMsg(String msg, int freeSpace, String WiFiStatus, String mqttStatus, bool isError)
 {
   getTime(); //Actualizar la fecha
   if(__numError!=0)
   {
     uint32_t freeSpace = 0;
-      
-    String linea = "Log(" + __fecha  +  ")" + tabulador + "Mensaje: " + msg + tabulador + "Estado WiFi: " + WiFiStatus + tabulador + "mqttEstatus: " + mqttStatus + tabulador + "Consecutivo: " + String(__numError) + tabulador + "Maximo permitido: " + String(maxNumError) + tabulador + "FREE MEMORY: " + String(freeSpace);
+
+    String encabezado = isError?"Error":"Log";
+    String linea = encabezado  + "(" + __fecha  +  ")" + tabulador + "Mensaje: " + msg + tabulador + "Estado WiFi: " + WiFiStatus + tabulador + "mqttEstatus: " + mqttStatus + tabulador + "Consecutivo: " + String(__numError) + tabulador + "Maximo permitido: " + String(maxNumError) + tabulador + "FREE MEMORY: " + String(freeSpace);
 
      
     Archivo = SD.open(String("log.txt"), FILE_WRITE);
     delay(minDelay);
     Archivo.println(linea);
     delay(minDelay);
-    Serial.println("Log saved");
-
-    delay(minDelay);
     Archivo.close();
       
     if(serDebug) Serial.println(linea);
     
-    __numError++;
-    if(__numError>=maxNumError)
+    if(isError) __numError++;
+    if(__numError>=maxNumError & isError)
     {
       __numError = 0;
       if(serDebug)  Serial.println("Reseting arduino");

@@ -8,7 +8,7 @@ class SD_PROCESS {
     void inicializar();
     void guardarInfo(String Data);
     void guardarEncabezados();
-    void saveIntoLogMsg(String msg, int freeSpace, String WiFiStatus, String mqttStatus);
+    void saveIntoLogMsg(String msg, int freeSpace, String WiFiStatus, String mqttStatus, bool isError);
     void setFileCounter(int val);
     void setNumError(int val);
     String getTime();

@@ -26,6 +26,7 @@
 #define sep ',' //Item separador en los ar
 #define minDelay 10 //delay min for try
 
+#define maxTimeWithNoPublish 30*60*1000 //Si pasan mas de 30 minutos sin publicar es preocupante
 #define maxNumError 10 //Numero maximo de errrores tolerable antes de causar un reinicio del arduino
 
 

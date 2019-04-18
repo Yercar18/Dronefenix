@@ -20,10 +20,12 @@ MEMORY_ADMINISTRATION administracion;
 PINS pinesIO;
 
 static const int count_mqtt_server = 3;
-static char* mqtt_server[count_mqtt_server] = {"iot.eclipse.org", "test.mosquitto.org", "157.230.174.83"};
+static char* mqtt_server[count_mqtt_server] = { "test.mosquitto.org", "iot.eclipse.org", "157.230.174.83"};
 char* __mqttServerConnected;
 const int serverPort = 1883;
 int serverConnectedIndex = 0;
+
+unsigned long lastPublishedTime = 0;
 
 WiFiClient espClient;
 PubSubClient mqttClient(espClient);
@@ -42,21 +44,22 @@ void setup() {
     WiFiProcess.inicializar();
 
     //Guardo en el registro que el sistema inicio correctamente
-    memoriaSD.saveIntoLogMsg("Encendido del sistema, WiFi OK", administracion.freeSpaceReportSerial() , WiFiProcess.wifiIsConnected()?"Conectado":"Desconectado", mqttIsConnected()?"Conectado":"Desconectado");
+    memoriaSD.saveIntoLogMsg("Encendido del sistema, WiFi OK", administracion.freeSpaceReportSerial() , WiFiProcess.wifiIsConnected()?"Conectado":"Desconectado", mqttIsConnected()?"Conectado":"Desconectado", false);
 
     String resultPetition = WiFiProcess.getPetition(URL);
     if(serDebug) Serial.println("Peticion get - " + resultPetition);
     
     setMQTTServer();
 
-    memoriaSD.saveIntoLogMsg("Saliendo del setup - Resultado de la peticion: " + resultPetition, administracion.freeSpaceReportSerial() , WiFiProcess.wifiIsConnected()?"Conectado":"Desconectado", mqttIsConnected()?"Conectado":"Desconectado");
+    memoriaSD.saveIntoLogMsg("Saliendo del setup - Resultado de la peticion: " + resultPetition, administracion.freeSpaceReportSerial() , WiFiProcess.wifiIsConnected()?"Conectado":"Desconectado", mqttIsConnected()?"Conectado":"Desconectado", false);
     
 }
 
 
 void loop() {
   
-    if (!mqttIsConnected()) reconnect();
+    if(!WiFiProcess.wifiIsConnected()) setup(); //Reinicio si no hay wifi
+    if (!mqttIsConnected()) reconnect(); //Reconectar mqtt si perdio conexion
     
     String informacion = serial.leerArduino();
     if(procesamiento.procesarInformacion(informacion))
@@ -85,11 +88,23 @@ void loop() {
       int len = 260;
       char buf[len];
       json2MQTT.toCharArray(buf, len);
-      publicarInformacion(buf);
+      if(publicarInformacion(buf))
+      { 
+         unsigned long span = (millis() - lastPublishedTime)/1000;
+         int ratio = span/60;
+         lastPublishedTime = millis();
+         memoriaSD.saveIntoLogMsg("Mensaje publicado con exito - ratio (Tiempo transcurrido desde la anterior publicacion): " + String(ratio), administracion.freeSpaceReportSerial() , WiFiProcess.wifiIsConnected()?"Conectado":"Desconectado", mqttIsConnected()?"Conectado":"Desconectado", false);   
+      }
+      else
+      {
+        memoriaSD.saveIntoLogMsg("Mensaje no publicado", administracion.freeSpaceReportSerial() , WiFiProcess.wifiIsConnected()?"Conectado":"Desconectado", mqttIsConnected()?"Conectado":"Desconectado", true);   
+      }
      
-      if(serDebug) Serial.println("json: " + json2MQTT);  
+      if(serDebug) Serial.println("json: " + json2MQTT); 
+     
     }
 
+    if((millis() - lastPublishedTime)>maxTimeWithNoPublish)  memoriaSD.saveIntoLogMsg("Han pasado " + String(maxTimeWithNoPublish/60000) + " minutos sin enviar actualizaciones" , administracion.freeSpaceReportSerial() , WiFiProcess.wifiIsConnected()?"Conectado":"Desconectado", mqttIsConnected()?"Conectado":"Desconectado", true);   
     mqttClient.loop();
 }
 
@@ -144,11 +159,13 @@ void reconnect() {
   while (!mqttIsConnected() && attemps<10) {
     attemps ++;
     if(serDebug) Serial.print("reconectando MQTT...");
+    memoriaSD.saveIntoLogMsg("reconectando MQTT(" + String(__mqttServerConnected) + ")...", administracion.freeSpaceReportSerial() , WiFiProcess.wifiIsConnected()?"Conectado":"Desconectado", mqttIsConnected()?"Conectado":"Desconectado", false);   
     // Create a random client ID
     String clientId = obtenerIdCliente();
     // Attempt to connect
     if (mqttClient.connect(clientId.c_str())) {
       if(serDebug) Serial.println("Conectado con exito");
+      memoriaSD.saveIntoLogMsg("Conectado con exito", administracion.freeSpaceReportSerial() , WiFiProcess.wifiIsConnected()?"Conectado":"Desconectado", mqttIsConnected()?"Conectado":"Desconectado", false);   
       // Once connected, publish an announcement...
       mqttClient.publish("testMQTT", "probando estacion metereologica");
       // ... and resubscribe
@@ -157,6 +174,7 @@ void reconnect() {
       if(serDebug) Serial.print("fallo, rc=");
       if(serDebug) Serial.print(mqttClient.state());
       if(serDebug) Serial.println(" intentando nuevamente en 5 segundos");
+      memoriaSD.saveIntoLogMsg("Fallo, rc = " + mqttClient.state(), administracion.freeSpaceReportSerial() , WiFiProcess.wifiIsConnected()?"Conectado":"Desconectado", mqttIsConnected()?"Conectado":"Desconectado", true);   
       // Wait 5 seconds before retrying
       setMQTTServer();
       delay(5000);
