@@ -175,7 +175,7 @@ void reconnect() {
       if(serDebug) Serial.print("fallo, rc=");
       if(serDebug) Serial.print(mqttClient.state());
       if(serDebug) Serial.println(" intentando nuevamente en 5 segundos");
-      memoriaSD.saveIntoLogMsg("Fallo, rc = " + mqttClient.state(), administracion.freeSpaceReportSerial() , WiFiProcess.wifiIsConnected()?"Conectado":"Desconectado", mqttIsConnected()?"Conectado":"Desconectado", true);   
+      memoriaSD.saveIntoLogMsg("Fallo, rc = " + String(mqttClient.state()), administracion.freeSpaceReportSerial() , WiFiProcess.wifiIsConnected()?"Conectado":"Desconectado", mqttIsConnected()?"Conectado":"Desconectado", true);   
       // Wait 5 seconds before retrying
       setMQTTServer();
       delay(5000);

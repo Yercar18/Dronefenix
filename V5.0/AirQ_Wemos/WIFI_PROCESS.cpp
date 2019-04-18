@@ -30,7 +30,11 @@ String WIFI_PROCESS::getPetition(String URL2Get)
       if(serDebug) Serial.println(String(httpCode));
       http.end();   //Close connection
   }
-  return String(payload);
+  String tmpPayload = String(payload);
+  tmpPayload.replace("\r", "");
+  tmpPayload.replace("\n", "");
+  tmpPayload.replace("\r\n", "");
+  return tmpPayload;
 }
 
 

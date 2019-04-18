@@ -73,6 +73,9 @@ void SD_PROCESS::guardarInfo(String Data){
 void SD_PROCESS::saveIntoLogMsg(String msg, int freeSpace, String WiFiStatus, String mqttStatus, bool isError)
 {
   getTime(); //Actualizar la fecha
+  msg.replace("\r", "");
+  msg.replace("\n", "");
+  msg.replace("\r\n", "");
   if(__numError!=0)
   {
     uint32_t freeSpace = 0;
