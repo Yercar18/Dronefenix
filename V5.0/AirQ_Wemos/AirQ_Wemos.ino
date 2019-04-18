@@ -91,9 +91,10 @@ void loop() {
       if(publicarInformacion(buf))
       { 
          unsigned long span = (millis() - lastPublishedTime)/1000;
-         int ratio = span/60;
+         int ratio = span>60?span/60:span;
+         String unidad = span>60?" minutos":" segundos";
          lastPublishedTime = millis();
-         memoriaSD.saveIntoLogMsg("Mensaje publicado con exito - ratio (Tiempo transcurrido desde la anterior publicacion): " + String(ratio), administracion.freeSpaceReportSerial() , WiFiProcess.wifiIsConnected()?"Conectado":"Desconectado", mqttIsConnected()?"Conectado":"Desconectado", false);   
+         memoriaSD.saveIntoLogMsg("Mensaje publicado con exito - ratio (Tiempo transcurrido desde la anterior publicacion): " + String(ratio) + unidad , administracion.freeSpaceReportSerial() , WiFiProcess.wifiIsConnected()?"Conectado":"Desconectado", mqttIsConnected()?"Conectado":"Desconectado", false);   
       }
       else
       {
