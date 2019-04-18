@@ -7,7 +7,6 @@ SERIAL_COMMUNICATION serial;
 PROCESS_DATA procesamiento;
 SD_PROCESS memoriaSD;
 
-unsigned long oldTime = 0;
 
 void setup() {
 
@@ -22,7 +21,6 @@ void setup() {
 
 
 void loop() {
-  while((millis()-oldTime)<=timeDelay){
     String informacion = serial.leerArduino();
     if(procesamiento.procesarInformacion(informacion))
     {
@@ -49,7 +47,4 @@ void loop() {
       
       if(serDebug) Serial.println("json: " + json2MQTT);  
     }
-  }
-  if(serDebug) Serial.println("He salido del while");
-  oldTime = millis();
 }

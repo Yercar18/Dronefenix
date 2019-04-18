@@ -94,45 +94,53 @@ bool PROCESS_DATA::procesarInformacion(String Data)
 {
     //Elimniar espacios en blanco
     Data.trim();
-    
-    int valuePointer = 0;
-    String initCharacterReceived = getValueStr(Data,sep,valuePointer);
-    valuePointer++;
-    temp = getValueStr(Data,sep,valuePointer).toInt() > 0 ? getValueStr(Data,sep,valuePointer):"0";
-    valuePointer++;
-    hum = getValueStr(Data,sep,valuePointer).toInt() > 0 ? getValueStr(Data,sep,valuePointer):"0";
-    valuePointer++;
-    presAt = getValueStr(Data,sep,valuePointer).toInt() > 0 ? getValueStr(Data,sep,valuePointer):"0";
-    valuePointer++;
-    alcohol = getValueStr(Data,sep,valuePointer).toInt() > 0 ? getValueStr(Data,sep,valuePointer):"0";
-    valuePointer++;
-    tvoc = getValueStr(Data,sep,valuePointer).toInt() > 0 ? getValueStr(Data,sep,valuePointer):"0";
-    valuePointer++;
-    co2 = getValueStr(Data,sep,valuePointer).toInt() > 0 ? getValueStr(Data,sep,valuePointer):"0";
-    valuePointer++;
-    metano = getValueStr(Data,sep,valuePointer).toInt() > 0 ? getValueStr(Data,sep,valuePointer):"0";
-    valuePointer++;
-    NH4 = abs(getValueStr(Data,sep,valuePointer).toInt()) > 0 ? getValueStr(Data,sep,valuePointer):"0";
-    valuePointer++;
 
-    latitud = abs(getValueStr(Data,sep,valuePointer).toInt()) > 0 ? getValueStr(Data,sep,valuePointer):"0";
-    valuePointer++;
-    longitud = abs(getValueStr(Data,sep,valuePointer).toInt()) > 0 ? getValueStr(Data,sep,valuePointer):"0";
-    valuePointer++;
-    fecha = abs(getValueStr(Data,sep,valuePointer).toInt()) > 0 ? getValueStr(Data,sep,valuePointer):"0";
-    valuePointer++;
-    
-    String endCharacterReceived = getValueStr(Data,sep,valuePointer);
-    
-    if(initCharacterReceived == initialCharacter && endCharacterReceived == endCharacter)
+    if(Data.length() >0)
     {
-      if(serDebug) Serial.println("La informacion leida es valida");
-      return true;
+      int valuePointer = 0;
+      String initCharacterReceived = getValueStr(Data,sep,valuePointer);
+      valuePointer++;
+      temp = getValueStr(Data,sep,valuePointer).toInt() > 0 ? getValueStr(Data,sep,valuePointer):"0";
+      valuePointer++;
+      hum = getValueStr(Data,sep,valuePointer).toInt() > 0 ? getValueStr(Data,sep,valuePointer):"0";
+      valuePointer++;
+      presAt = getValueStr(Data,sep,valuePointer).toInt() > 0 ? getValueStr(Data,sep,valuePointer):"0";
+      valuePointer++;
+      alcohol = getValueStr(Data,sep,valuePointer).toInt() > 0 ? getValueStr(Data,sep,valuePointer):"0";
+      valuePointer++;
+      tvoc = getValueStr(Data,sep,valuePointer).toInt() > 0 ? getValueStr(Data,sep,valuePointer):"0";
+      valuePointer++;
+      co2 = getValueStr(Data,sep,valuePointer).toInt() > 0 ? getValueStr(Data,sep,valuePointer):"0";
+      valuePointer++;
+      metano = getValueStr(Data,sep,valuePointer).toInt() > 0 ? getValueStr(Data,sep,valuePointer):"0";
+      valuePointer++;
+      NH4 = abs(getValueStr(Data,sep,valuePointer).toInt()) > 0 ? getValueStr(Data,sep,valuePointer):"0";
+      valuePointer++;
+  
+      latitud = abs(getValueStr(Data,sep,valuePointer).toInt()) > 0 ? getValueStr(Data,sep,valuePointer):"0";
+      valuePointer++;
+      longitud = abs(getValueStr(Data,sep,valuePointer).toInt()) > 0 ? getValueStr(Data,sep,valuePointer):"0";
+      valuePointer++;
+      fecha = abs(getValueStr(Data,sep,valuePointer).toInt()) > 0 ? getValueStr(Data,sep,valuePointer):"0";
+      valuePointer++;
+      
+      String endCharacterReceived = getValueStr(Data,sep,valuePointer);
+      
+      if(initCharacterReceived == initialCharacter && endCharacterReceived == endCharacter)
+      {
+        if(serDebug) Serial.println("La informacion leida es valida");
+        return true;
+      }
+      else
+      {
+        if(serDebug) Serial.print("Data invalida - ");
+        if(serDebug) Serial.println("Caracter de inicio: " + initCharacterReceived + " caracter de fin: " + endCharacterReceived);
+        return false;
+      }
     }
     else
     {
-      if(serDebug) Serial.print("Data invalida - ");
-      if(serDebug) Serial.println("Caracter de inicio: " + initCharacterReceived + " caracter de fin: " + endCharacterReceived);
+      //Si no ha leido data
       return false;
     }
 }
