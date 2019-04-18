@@ -3,9 +3,11 @@
 #include <SD.h>   
 //For sd support
 #include <SPI.h>
+#include <time.h>
 
 const String defaultFileName = "datos", defaultFileExtension = ".csv";
-
+int timezone = -5 * 3600;
+int dst = 0;
 
 File Archivo;
 
@@ -15,8 +17,18 @@ void SD_PROCESS::setFileCounter(int val){
 void SD_PROCESS::setNumError(int val){
      __numError = val;
 }
+String SD_PROCESS::getTime()
+{
+      time_t now = time(nullptr);
+      struct tm* p_tm = localtime(&now);
+      String hora = String(p_tm->tm_mday) + "/" +  String(p_tm->tm_mon + 1) + "/" + String(p_tm->tm_year + 1900) + " - " +  String(p_tm->tm_hour) + ":" + String(p_tm->tm_min) + ":" + String(p_tm->tm_sec);
+      return hora;
+}
 
 void SD_PROCESS::inicializar(){
+  
+  configTime(timezone, dst, "pool.ntp.org","time.nist.gov");
+  
   if (!SD.begin(chipSelect) & serDebug) {
     Serial.println("SD CARD Lecture failed");
   }

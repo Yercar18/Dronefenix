@@ -2,7 +2,7 @@
 #include <ArduinoJson.h>
 #include "configuration.h"
 
-String PROCESS_DATA::ensamblarMensajeJSON(double temp, double hum, double presAlt, double alcoholPPM, double TVOC, double CO2, double Metano, double NH4, float latitud, float longitud, double fecha){
+String PROCESS_DATA::ensamblarMensajeJSON(double temp, double hum, double presAlt, double alcoholPPM, double TVOC, double CO2, double Metano, double NH4, float latitud, float longitud, String fecha){
      // Memory pool for JSON object tree.
     //
     // Inside the brackets, 200 is the size of the pool in bytes.
@@ -90,7 +90,7 @@ String PROCESS_DATA::mensajeSDTabulado()
   return temp + tabulador + hum + tabulador + presAt + tabulador + alcohol + tabulador +tvoc + tabulador + co2 + tabulador + metano + tabulador + NH4 + tabulador + latitud + tabulador + longitud + tabulador + fecha;
 }
 
-bool PROCESS_DATA::procesarInformacion(String Data)
+bool PROCESS_DATA::procesarInformacion(String Data, String fecha)
 {
     //Elimniar espacios en blanco
     Data.trim();
@@ -121,7 +121,7 @@ bool PROCESS_DATA::procesarInformacion(String Data)
       valuePointer++;
       longitud = abs(getValueStr(Data,sep,valuePointer).toInt()) > 0 ? getValueStr(Data,sep,valuePointer):"0";
       valuePointer++;
-      fecha = abs(getValueStr(Data,sep,valuePointer).toInt()) > 0 ? getValueStr(Data,sep,valuePointer):"0";
+      //fecha = abs(getValueStr(Data,sep,valuePointer).toInt()) > 0 ? getValueStr(Data,sep,valuePointer):"0";
       valuePointer++;
       
       String endCharacterReceived = getValueStr(Data,sep,valuePointer);

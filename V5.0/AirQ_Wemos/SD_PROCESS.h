@@ -11,6 +11,7 @@ class SD_PROCESS {
     void reportError(String msg, int freeSpace, String WiFiStatus, String mqttStatus);
     void setFileCounter(int val);
     void setNumError(int val);
+    String getTime();
   private:
     int __defaultFileCounter;
     int __numError;

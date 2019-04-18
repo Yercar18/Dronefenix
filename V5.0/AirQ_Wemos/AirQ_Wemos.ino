@@ -17,11 +17,10 @@ WIFI_PROCESS WiFiProcess;
 
 
 static const int count_mqtt_server = 3;
-static char* mqtt_server[count_mqtt_server] = {"test.mosquitto.org", "iot.eclipse.org", "157.230.174.83"};
+static char* mqtt_server[count_mqtt_server] = {"iot.eclipse.org", "test.mosquitto.org", "157.230.174.83"};
 char* __mqttServerConnected;
 const int serverPort = 1883;
 int serverConnectedIndex = 0;
-
 
 WiFiClient espClient;
 PubSubClient mqttClient(espClient);
@@ -49,7 +48,7 @@ void loop() {
     if (!mqttIsConnected()) reconnect();
     
     String informacion = serial.leerArduino();
-    if(procesamiento.procesarInformacion(informacion))
+    if(procesamiento.procesarInformacion(informacion, memoriaSD.getTime()))
     {
       //Si la informacion es valida se debe proceder a guardar en la SD y enviar al MQTT server
       String lineaSDCard = procesamiento.mensajeSDTabulado();
@@ -67,7 +66,7 @@ void loop() {
       int NH4 = procesamiento.leerNH4();
       float latitud = procesamiento.leerLatitud();
       float longitud = procesamiento.leerLongitud();
-      double fecha = procesamiento.leerFecha();
+      String fecha = memoriaSD.getTime();
 
       String json2MQTT = procesamiento.ensamblarMensajeJSON(temperatura, humedad, presionAmosferica, alcohol, tvoc, co2, metano, NH4, latitud, longitud, fecha);
       int len = 260;

@@ -5,7 +5,7 @@
 
 class PROCESS_DATA {
   public:
-    bool procesarInformacion(String Data);
+    bool procesarInformacion(String Data, String fecha);
     bool getValue(String data, char separator, int index);
     String getValueStr(String data, char separator, int index);
     double stringToDouble(String & str);
@@ -21,7 +21,7 @@ class PROCESS_DATA {
     float leerLongitud();
     double leerFecha();
     String mensajeSDTabulado();
-    String ensamblarMensajeJSON(double temp, double hum, double presAlt, double alcoholPPM, double TVOC, double CO2, double Metano, double NH4, float latitud, float longitud, double fecha);
+    String ensamblarMensajeJSON(double temp, double hum, double presAlt, double alcoholPPM, double TVOC, double CO2, double Metano, double NH4, float latitud, float longitud, String fecha);
   private:
     String temp, hum, presAt, alcohol,tvoc, co2, metano, NH4,  latitud, longitud, fecha;
     
