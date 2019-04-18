@@ -29,7 +29,7 @@ void MQTT_PROCESS::inicializar(){
   
 }
 
-void MQTT_PROCESS::publicarData(double temp, double hum, double presAlt, double alcoholPPM, double TVOC, double CO2, double Metano, double NH4, double latitud, double longitud, double fecha){
+boolean MQTT_PROCESS::publicarData(double temp, double hum, double presAlt, double alcoholPPM, double TVOC, double CO2, double Metano, double NH4, double latitud, double longitud, double fecha){
     // Memory pool for JSON object tree.
     //
     // Inside the brackets, 200 is the size of the pool in bytes.
@@ -67,8 +67,9 @@ void MQTT_PROCESS::publicarData(double temp, double hum, double presAlt, double 
     if(serDebug) Serial.println(JSONmessageBuffer);
 
     bool isPublished = false;
+    int attemps = 0;
 
-    while(!isPublished)
+    while(!isPublished or attemps>=10)
     {
       if (mqttClient.publish(outTopic, JSONmessageBuffer) == true) {
         
@@ -78,33 +79,33 @@ void MQTT_PROCESS::publicarData(double temp, double hum, double presAlt, double 
         if(serDebug) Serial.println("Publicado!!! :)");
         break;
       } else {
-        if(serDebug) Serial.println("result -- " + String(confirmIfMqttIsConnectedOrLoopMQTT()));
+        if(serDebug) Serial.println("No se ha podido publicar");
+        isPublished = false;
         delay(timeDelay*1.5);
       }
     }
     delay(minDelay*100);
+    return isPublished;
 }
 
 void MQTT_PROCESS::setMQTTServer()
 {  
-  static const int count_mqtt_server = numServers;
-  static const char* mqtt_server[count_mqtt_server] = {serverList};    
-  unsigned long lastMQTTConnectionAttempt, oldTime;
+    unsigned long lastMQTTConnectionAttempt, oldTime;
     
-  if(consecutive<=count_mqtt_server - 1)
+  if(__consecutive<=count_mqtt_server - 1)
   {
-    consecutive+=1;
-    if(serDebug) Serial.println("Proximo servidor: " + String(mqtt_server[consecutive]));
+    __consecutive+=1;
+    if(serDebug) Serial.println("Proximo servidor: " + String(mqtt_server[__consecutive]));
   }
   else
   {
-    consecutive = 0;
+    __consecutive = 0;
     if(serDebug) Serial.println("He probado con todos los broker, volvere a comenzar a probar");
   }  
-  __mqttServerConnected = mqtt_server[consecutive];
-  mqttClient.setServer(mqtt_server[consecutive], serverPort);
+  __mqttServerConnected = mqtt_server[__consecutive];
+  mqttClient.setServer(mqtt_server[__consecutive], serverPort);
   
-  if(serDebug) Serial.println("New broker connected: " + String(mqtt_server[consecutive]));
+  if(serDebug) Serial.println("New broker connected: " + __mqttServerConnected);
   
   mqttClient.setCallback(callback); 
 }
@@ -151,7 +152,7 @@ bool MQTT_PROCESS::confirmIfMqttIsConnectedOrLoopMQTT()
         
         while (!mqttClient.connect(inTopic)) {   
           setMQTTServer();
-          reportError("Trying to connect to mqtt: " + String(mqtt_server[consecutive]));  
+          reportError("Trying to connect to mqtt: " + String(mqtt_server[__consecutive]));  
           delay(minDelay*100);
           //sprintf(topic, "%s/+/+", settings.mqttTopic);
           //mqttClient.subscribe(topic);
@@ -160,7 +161,7 @@ bool MQTT_PROCESS::confirmIfMqttIsConnectedOrLoopMQTT()
           //updateMQTT(0);
         }        
           mqttClient.subscribe(inTopic);
-          if(serDebug) Serial.println("MQTT connection OK - " + String(mqtt_server[consecutive]));
+          if(serDebug) Serial.println("MQTT connection OK - " + String(mqtt_server[__consecutive]));
           return true;
       }
       else

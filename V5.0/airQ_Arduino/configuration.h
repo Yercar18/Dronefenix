@@ -18,7 +18,19 @@
 
 #define gpsRx 6
 #define gpsTx 7
+#define wRx 10
+#define wTx 11
 #define baudRateGps 9600
+#define baudRateDebug 115200
+#define serDebug true
+
+#define initialCharacter "Start"
+#define endCharacter "Stop"
+#define sep ","
+
+#define timeDelay 500
+#define limit 10 //rango -- entre 6 y 12
+#define limitTime 5*60*1000 // 5 minutos en milisegundos
 
 
 #endif // CONFIGURATION_H

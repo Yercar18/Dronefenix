@@ -14,9 +14,11 @@
 #define outTopic "droneFenix/2/estacion1"
 #define inTopic "droneFenix/2/estacion1IN"
 #define wiFiname "AirQ_droneFenix/2/estacion1"
-#define serverList ["test.mosquitto.org", "iot.eclipse.org", "157.230.174.83"]
+
+#define count_mqtt_server 3
+#define mqtt_server[3] ["test.mosquitto.org", "iot.eclipse.org", "157.230.174.83"]
 #define serverPort 1883
-#define numServers 3
+
 
 #define ledWarning led_builtin
 #define chipSelect D4

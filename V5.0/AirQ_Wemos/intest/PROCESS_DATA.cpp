@@ -1,7 +1,6 @@
 #include "PROCESS_DATA.h"
 #include "configuration.h"
 
-String tempT, humT, presAtT, alcoholT,tvocT, co2T, metanoT, latitudT, longitudT, fechaT, Data = "", serialData, fileName, temp, hum, presAt, alcohol,tvoc, co2, metano, NH4,  latitud, longitud, fecha;
 
 bool PROCESS_DATA::processData(String Data)
 {

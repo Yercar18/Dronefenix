@@ -1,21 +1,32 @@
 #include "CCS811_SENSOR.h"
+#include "BMP_SENSOR.h"
 #include "DHT_SENSOR.h"
 #include "MQ4_SENSOR.h"
 #include "MQ135_SENSOR.h"
 #include "GPS_SENSOR.h"
+#include  "PROCESS_DATA.h"
+#include "SERIAL_COMMUNICATION.h"
+#include "configuration.h"
 
 DHT_SENSOR DHTSensor;
 CCS811_SENSOR CCSSensor;
+BMP_SENSOR bmpSensor;
 MQ4_SENSOR MQ4Sensor;
 MQ135_SENSOR MQ135Sensor;
 GPS_SENSOR GPSSensor;
+PROCESS_DATA data;
+SERIAL_COMMUNICATION serialportManager;
+
+double temperatura, humedad, presionAtmosferica, fecha;
+int alcohol, tvoc, co2, metano, NH4;
+float latitud, longitud;
 
 void setup() {
   // put your setup code here, to run once:
-  Serial.begin(9600);
-  
+  serialportManager.inicializar();  
   DHTSensor.inicializar();
-  Serial.println(CCSSensor.inicializar());
+  if(serDebug) Serial.println(CCSSensor.inicializar());
+  if(serDebug) Serial.println(bmpSensor.inicializar());
   MQ4Sensor.inicializar();
   MQ135Sensor.inicializar();
   GPSSensor.inicializar();
@@ -23,25 +34,28 @@ void setup() {
 
 void loop() {
   // put your main code here, to run repeatedly:
-  Serial.println("************inicio****************");
-
   
-  Serial.println(DHTSensor.leerTemperatura());
-  Serial.println(DHTSensor.leerHumedad());
+  temperatura = DHTSensor.leerTemperatura();
+  humedad = DHTSensor.leerHumedad();
+  presionAtmosferica = bmpSensor.leerPresionAtmosferica();
+  alcohol = MQ4Sensor.leerAlcohol();
+  tvoc =  CCSSensor.medirTVOC();
+  co2 = CCSSensor.medirCO2();
+  metano = MQ4Sensor.leerMetano();
+  NH4 =  MQ135Sensor.leerNH4();
+  latitud = GPSSensor.leerLatitud();
+  longitud = GPSSensor.leerLongitud();
+  fecha = GPSSensor.leerFecha();
+ 
+  String lecturas = data.procesarData(temperatura, humedad, presionAtmosferica, alcohol, tvoc, co2, metano, NH4, latitud, longitud, fecha);
 
-  Serial.println(CCSSensor.medirCO2());
-  Serial.println(CCSSensor.medirTVOC());
-
-  Serial.println(MQ4Sensor.leerAlcohol());
-  Serial.println(MQ4Sensor.leerMetano());
-  Serial.println(MQ135Sensor.leerNH4());
+  if(lecturas!= "")
+  {
+    if(serDebug) Serial.println("Se ha enviado la informacion hacia el wemos");
+    if(serDebug) Serial.println("Lecturas: " + lecturas);
+    serialportManager.enviarWemos(lecturas);
+  }
   
-  Serial.println(GPSSensor.leerLatitud());
-  Serial.println(GPSSensor.leerLongitud());
-  Serial.println(GPSSensor.leerFecha());
-
-  
-  Serial.println("************Fin****************");
-  GPSSensor.smartdelay(1000);
+  GPSSensor.smartdelay(timeDelay);
 
 }
