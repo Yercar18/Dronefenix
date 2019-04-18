@@ -3,7 +3,7 @@
 
 #include "Arduino.h"
 
-#define serDebug false //Para activar o desactivar el debug serial
+#define serDebug true //Para activar o desactivar el debug serial
 #define BAUD_RATE 115200
 
 //Mosquitto
@@ -37,6 +37,7 @@
 #define URL "http://airq.dronefenix.a2hosted.com/bot"
 #define banderaPeticionGet 6 //Maximo de publicaciones al broker antes de llamar a la pagina bot para despertar al hosting en caso que el iis haya apagado el servicio
 
-
+#define initialCharacter "Inicio"
+#define endCharacter "Final"
 
 #endif // CONFIGURATION_H

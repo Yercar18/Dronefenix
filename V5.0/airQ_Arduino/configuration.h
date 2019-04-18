@@ -29,8 +29,8 @@
 #define serDebug true
 
 //Configuracion para el envio de informacion (AVANZADO)
-#define initialCharacter "Start"
-#define endCharacter "Stop"
+#define initialCharacter "Inicio"
+#define endCharacter "Final"
 #define sep ","
 
 //Tiempos de espera..
