@@ -2,6 +2,8 @@
 #include "PROCESS_DATA.h"
 #include "SD_PROCESS.h"
 #include "WIFI_PROCESS.h"
+#include "MEMORY_ADMINISTRATION.h"
+#include "PINS.h"
 #include "configuration.h"
 
 #include <ESP8266WiFi.h>
@@ -14,7 +16,8 @@ SERIAL_COMMUNICATION serial;
 PROCESS_DATA procesamiento;
 SD_PROCESS memoriaSD;
 WIFI_PROCESS WiFiProcess;
-
+MEMORY_ADMINISTRATION administracion;
+PINS pinesIO;
 
 static const int count_mqtt_server = 3;
 static char* mqtt_server[count_mqtt_server] = {"iot.eclipse.org", "test.mosquitto.org", "157.230.174.83"};
@@ -27,6 +30,8 @@ PubSubClient mqttClient(espClient);
 
 void setup() {
 
+    //Inicializacion de los pines, memoria SD y WiFi
+    pinesIO.inicializar();
     memoriaSD.setFileCounter(0);
     memoriaSD.setNumError(0);
     
@@ -35,11 +40,17 @@ void setup() {
     memoriaSD.guardarEncabezados();
 
     WiFiProcess.inicializar();
-    if(serDebug) Serial.println("Peticion get - " + WiFiProcess.getPetition("http://www.google.com"));
+
+    //Guardo en el registro que el sistema inicio correctamente
+    memoriaSD.saveIntoLogMsg("Encendido del sistema, WiFi OK", administracion.freeSpaceReportSerial() , WiFiProcess.wifiIsConnected()?"Conectado":"Desconectado", mqttIsConnected()?"Conectado":"Desconectado");
+
+    String resultPetition = WiFiProcess.getPetition(URL);
+    if(serDebug) Serial.println("Peticion get - " + resultPetition);
     
     setMQTTServer();
+
+    memoriaSD.saveIntoLogMsg("Saliendo del setup - Resultado de la peticion: " + resultPetition, administracion.freeSpaceReportSerial() , WiFiProcess.wifiIsConnected()?"Conectado":"Desconectado", mqttIsConnected()?"Conectado":"Desconectado");
     
-    if(serDebug) Serial.println("Saliendo del setup");
 }
 
 
@@ -48,8 +59,11 @@ void loop() {
     if (!mqttIsConnected()) reconnect();
     
     String informacion = serial.leerArduino();
-    if(procesamiento.procesarInformacion(informacion, memoriaSD.getTime()))
+    if(procesamiento.procesarInformacion(informacion))
     {
+      //Calcular y guardar la fecha
+      String fecha = memoriaSD.getTime();
+      procesamiento.setFecha(fecha);
       //Si la informacion es valida se debe proceder a guardar en la SD y enviar al MQTT server
       String lineaSDCard = procesamiento.mensajeSDTabulado();
       memoriaSD.guardarInfo(lineaSDCard);
@@ -66,15 +80,13 @@ void loop() {
       int NH4 = procesamiento.leerNH4();
       float latitud = procesamiento.leerLatitud();
       float longitud = procesamiento.leerLongitud();
-      String fecha = memoriaSD.getTime();
 
       String json2MQTT = procesamiento.ensamblarMensajeJSON(temperatura, humedad, presionAmosferica, alcohol, tvoc, co2, metano, NH4, latitud, longitud, fecha);
       int len = 260;
       char buf[len];
       json2MQTT.toCharArray(buf, len);
       publicarInformacion(buf);
-      
-      
+     
       if(serDebug) Serial.println("json: " + json2MQTT);  
     }
 

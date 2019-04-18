@@ -8,7 +8,7 @@ class SD_PROCESS {
     void inicializar();
     void guardarInfo(String Data);
     void guardarEncabezados();
-    void reportError(String msg, int freeSpace, String WiFiStatus, String mqttStatus);
+    void saveIntoLogMsg(String msg, int freeSpace, String WiFiStatus, String mqttStatus);
     void setFileCounter(int val);
     void setNumError(int val);
     String getTime();
@@ -16,6 +16,7 @@ class SD_PROCESS {
     int __defaultFileCounter;
     int __numError;
     String __fileNameAndExtension;
+    String __fecha;
 };
 
 

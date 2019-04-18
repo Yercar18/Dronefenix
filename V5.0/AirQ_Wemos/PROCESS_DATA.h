@@ -5,7 +5,8 @@
 
 class PROCESS_DATA {
   public:
-    bool procesarInformacion(String Data, String fecha);
+    void setFecha(String fechaIn);
+    bool procesarInformacion(String Data);
     bool getValue(String data, char separator, int index);
     String getValueStr(String data, char separator, int index);
     double stringToDouble(String & str);

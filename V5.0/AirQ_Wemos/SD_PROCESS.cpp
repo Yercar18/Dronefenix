@@ -21,8 +21,8 @@ String SD_PROCESS::getTime()
 {
       time_t now = time(nullptr);
       struct tm* p_tm = localtime(&now);
-      String hora = String(p_tm->tm_mday) + "/" +  String(p_tm->tm_mon + 1) + "/" + String(p_tm->tm_year + 1900) + " - " +  String(p_tm->tm_hour) + ":" + String(p_tm->tm_min) + ":" + String(p_tm->tm_sec);
-      return hora;
+      __fecha = String(p_tm->tm_mday) + "/" +  String(p_tm->tm_mon + 1) + "/" + String(p_tm->tm_year + 1900) + " - " +  String(p_tm->tm_hour) + ":" + String(p_tm->tm_min) + ":" + String(p_tm->tm_sec);
+      return __fecha;
 }
 
 void SD_PROCESS::inicializar(){
@@ -70,16 +70,16 @@ void SD_PROCESS::guardarInfo(String Data){
     if(serDebug) Serial.println("Data saved");
 }
 
-void SD_PROCESS::reportError(String msg, int freeSpace, String WiFiStatus, String mqttStatus)
+void SD_PROCESS::saveIntoLogMsg(String msg, int freeSpace, String WiFiStatus, String mqttStatus)
 {
-
+  getTime(); //Actualizar la fecha
   if(__numError!=0)
   {
     uint32_t freeSpace = 0;
       
-    String linea = ("****************Error detectado********************************");
-    linea = linea + "\r\n" + "Consecutivo: " + String(__numError) + " ***" + "Maximo permitido: " + String(maxNumError) + " ***FREE MEMORY: " + String(freeSpace);
-    
+    String linea = "Log(" + __fecha  +  ")" + tabulador + "Mensaje: " + msg + tabulador + "Estado WiFi: " + WiFiStatus + tabulador + "mqttEstatus: " + mqttStatus + tabulador + "Consecutivo: " + String(__numError) + tabulador + "Maximo permitido: " + String(maxNumError) + tabulador + "FREE MEMORY: " + String(freeSpace);
+
+     
     Archivo = SD.open(String("log.txt"), FILE_WRITE);
     delay(minDelay);
     Archivo.println(linea);
@@ -88,20 +88,13 @@ void SD_PROCESS::reportError(String msg, int freeSpace, String WiFiStatus, Strin
 
     delay(minDelay);
     Archivo.close();
-    
-    String linea2 = "Estado WiFi: " + WiFiStatus + " ,mqttEstatus: " + mqttStatus;
-    if(serDebug) Serial.println(linea2);
-    if(serDebug) Serial.println(msg);
-  
-  
-    if(serDebug) Serial.println("****************Error detectado********************************");
+      
     if(serDebug) Serial.println(linea);
-    if(serDebug)  Serial.println(linea2);
-    if(serDebug)  Serial.println(msg);
     
     __numError++;
     if(__numError>=maxNumError)
     {
+      __numError = 0;
       if(serDebug)  Serial.println("Reseting arduino");
       digitalWrite(arduinoResetPin, LOW);
       delay(timeDelay);

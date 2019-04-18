@@ -5,7 +5,7 @@ void PINS::inicializar()
 {
   pinMode(arduinoResetPin,OUTPUT);
   digitalWrite(arduinoResetPin, LOW);
-
+  delay(100);
   digitalWrite(arduinoResetPin, HIGH);
-  delay(minDelay*2500);
+  delay(minDelay);
 }

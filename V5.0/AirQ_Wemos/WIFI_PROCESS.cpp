@@ -18,19 +18,19 @@ void WIFI_PROCESS::inicializar(){
 
 String WIFI_PROCESS::getPetition(String URL2Get)
 {
-    String payload;
+    char payload[300];
     HTTPClient http;  //Declare an object of class HTTPClient
     http.begin(URL2Get);  //Specify request destination
     int httpCode = http.GET();         
     if(serDebug) Serial.println("Codigo de respuesta HTTP: " + String(httpCode));
     //Send the request
     if (httpCode > 0) { //Check the returning code 
-      payload = http.getString();   //Get the request response payload
+      http.getString().toCharArray(payload,200);   //Get the request response payload
       if(serDebug) Serial.println("Resultado de la peticion: ");
       if(serDebug) Serial.println(String(httpCode));
       http.end();   //Close connection
   }
-  return payload;
+  return String(payload);
 }
 
 

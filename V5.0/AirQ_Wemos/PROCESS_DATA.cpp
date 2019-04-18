@@ -89,8 +89,11 @@ String PROCESS_DATA::mensajeSDTabulado()
 {
   return temp + tabulador + hum + tabulador + presAt + tabulador + alcohol + tabulador +tvoc + tabulador + co2 + tabulador + metano + tabulador + NH4 + tabulador + latitud + tabulador + longitud + tabulador + fecha;
 }
-
-bool PROCESS_DATA::procesarInformacion(String Data, String fecha)
+void PROCESS_DATA::setFecha(String fechaIn)
+{
+  fecha = fechaIn;
+}
+bool PROCESS_DATA::procesarInformacion(String Data)
 {
     //Elimniar espacios en blanco
     Data.trim();
