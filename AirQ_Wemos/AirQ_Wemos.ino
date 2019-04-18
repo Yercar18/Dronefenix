@@ -26,6 +26,7 @@ const int serverPort = 1883;
 int serverConnectedIndex = 0;
 
 unsigned long lastPublishedTime = 0;
+unsigned long lastGetPetition = 0;
 
 WiFiClient espClient;
 PubSubClient mqttClient(espClient);
@@ -106,6 +107,7 @@ void loop() {
     }
 
     if((millis() - lastPublishedTime)>maxTimeWithNoPublish)  memoriaSD.saveIntoLogMsg("Han pasado " + String(maxTimeWithNoPublish/60000) + " minutos sin enviar actualizaciones" , administracion.freeSpaceReportSerial() , WiFiProcess.wifiIsConnected()?"Conectado":"Desconectado", mqttIsConnected()?"Conectado":"Desconectado", true);   
+    if((millis() -lastGetPetition)>maxTimeWithNoPublish) WiFiProcess.getPetition(URL); //Despertar al servidor haciendo una peticion cada media hora
     mqttClient.loop();
 }
 
