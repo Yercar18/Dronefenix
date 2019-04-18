@@ -19,6 +19,10 @@
 #define mqtt_server[3] ["test.mosquitto.org", "iot.eclipse.org", "157.230.174.83"]
 #define serverPort 1883
 
+//Advance mosquitto NO TOUCH
+#define MQTT_CALLBACK_FCTN std::function<void(char*, uint8_t*, unsigned int)> callback
+
+
 
 #define ledWarning led_builtin
 #define chipSelect D4
