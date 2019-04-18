@@ -12,18 +12,8 @@
 WiFiClient espClient;
 PubSubClient mqttClient(espClient);
 
-//Server private onmotica and public bypass servers
-//info: https://github.com/mqtt/mqtt.github.io/wiki/public_brokers
-//static const char* mqtt_server[] = {"157.230.174.83", "test.mosquitto.org", "iot.eclipse.org", "broker.hivemq.com", "www.cloudmqtt.com", "mqtt.swifitch.cz", "mqtt.fluux.io", "console.solace.cloud"};
-static const int count_mqtt_server = 3;
-static const char* mqtt_server[count_mqtt_server] = {"test.mosquitto.org", "iot.eclipse.org", "157.230.174.83"};
-const int serverPort = 1883;
 
-const char* outTopic = "droneFenix/2/estacion1";
-const char* inTopic = "droneFenix/2/estacion1IN";
-const char* wiFiname = "AirQ_droneFenix/2/estacion1";
-unsigned long lastMQTTConnectionAttempt, oldTime;
-
+    
 void MQTT_PROCESS::inicializar(){
   
   WiFiManager wifiManager;
@@ -33,12 +23,8 @@ void MQTT_PROCESS::inicializar(){
       delay(minDelay*50);
   }
 
-  if(serDebug) Serial.println("Numero de brokers: " + String(sizeof(mqtt_server)));
+   if(serDebug) Serial.println("MQTT Server: "  + String(__mqttServerConnected));
   
-  for(int i = 0; i <= count_mqtt_server - 1; i++)
-  {
-    if(serDebug) Serial.println("Server" + String(i) +  ": " + String(mqtt_server[i]));
-  }
   
   
 }
@@ -97,22 +83,14 @@ void MQTT_PROCESS::publicarData(double temp, double hum, double presAlt, double 
       }
     }
     delay(minDelay*100);
-    /*
-    root.printTo(Data); //Almaceno el json generado en la variable Data
-      Serial.print("El json es: "); Serial.println(Data);
-      char msg[Data.length()];
-      Data.toCharArray(msg,Data.length());
-      
-      client.publish(outTopic, msg);
-      */
 }
 
-double MQTT_PROCESS::stringToDouble(String & str)  // <-- notice the "&"
-{
-  return atof( str.c_str() );
-}
 void MQTT_PROCESS::setMQTTServer()
 {  
+  static const int count_mqtt_server = numServers;
+  static const char* mqtt_server[count_mqtt_server] = {serverList};    
+  unsigned long lastMQTTConnectionAttempt, oldTime;
+    
   if(consecutive<=count_mqtt_server - 1)
   {
     consecutive+=1;
@@ -123,6 +101,7 @@ void MQTT_PROCESS::setMQTTServer()
     consecutive = 0;
     if(serDebug) Serial.println("He probado con todos los broker, volvere a comenzar a probar");
   }  
+  __mqttServerConnected = mqtt_server[consecutive];
   mqttClient.setServer(mqtt_server[consecutive], serverPort);
   
   if(serDebug) Serial.println("New broker connected: " + String(mqtt_server[consecutive]));

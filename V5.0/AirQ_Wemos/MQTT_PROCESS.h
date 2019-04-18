@@ -9,9 +9,11 @@ class MQTT_PROCESS {
     void publicarData(double temp, double hum, double presAlt, double alcoholPPM, double TVOC, double CO2, double Metano, double NH4, double latitud, double longitud, double fecha);
     void setMQTTServer();
     void getPetition();
-    double StringToDouble(String & str);
     boolean confirmIfMqttIsConnectedOrLoopMQTT();
     void callback(char* topic, byte* payload, unsigned int length);
+ private:
+    String __mqttServerConnected;
+
 };
 
 

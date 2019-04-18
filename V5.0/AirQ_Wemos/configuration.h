@@ -6,6 +6,18 @@
 #define serDebug false //Para activar o desactivar el debug serial
 #define BAUD_RATE 115200
 
+//Mosquitto
+//Server private onmotica and public bypass servers
+//info: https://github.com/mqtt/mqtt.github.io/wiki/public_brokers
+//static const char* mqtt_server[] = {"157.230.174.83", "test.mosquitto.org", "iot.eclipse.org", "broker.hivemq.com", "www.cloudmqtt.com", "mqtt.swifitch.cz", "mqtt.fluux.io", "console.solace.cloud"};
+
+#define outTopic "droneFenix/2/estacion1"
+#define inTopic "droneFenix/2/estacion1IN"
+#define wiFiname "AirQ_droneFenix/2/estacion1"
+#define serverList ["test.mosquitto.org", "iot.eclipse.org", "157.230.174.83"]
+#define serverPort 1883
+#define numServers 3
+
 #define ledWarning led_builtin
 #define chipSelect D4
 #define arduinoTXPin D3
