@@ -15,7 +15,13 @@ PROCESS_DATA procesamiento;
 SD_PROCESS memoriaSD;
 WIFI_PROCESS WiFiProcess;
 
+
+static const int count_mqtt_server = 3;
+static char* mqtt_server[count_mqtt_server] = {"test.mosquitto.org", "iot.eclipse.org", "157.230.174.83"};
 char* __mqttServerConnected;
+const int serverPort = 1883;
+int serverConnectedIndex = 0;
+
 
 WiFiClient espClient;
 PubSubClient mqttClient(espClient);
@@ -27,8 +33,11 @@ void setup() {
     
     serial.inicializar();
     memoriaSD.inicializar();
+    memoriaSD.guardarEncabezados();
 
     WiFiProcess.inicializar();
+    if(serDebug) Serial.println("Peticion get - " + WiFiProcess.getPetition("http://www.google.com"));
+    
     setMQTTServer();
     
     if(serDebug) Serial.println("Saliendo del setup");
@@ -36,6 +45,9 @@ void setup() {
 
 
 void loop() {
+  
+    if (!mqttIsConnected()) reconnect();
+    
     String informacion = serial.leerArduino();
     if(procesamiento.procesarInformacion(informacion))
     {
@@ -66,6 +78,8 @@ void loop() {
       
       if(serDebug) Serial.println("json: " + json2MQTT);  
     }
+
+    mqttClient.loop();
 }
 
 boolean publicarInformacion(char JSON[260]){
@@ -83,34 +97,76 @@ boolean publicarInformacion(char JSON[260]){
         if(serDebug) Serial.println("Publicado!!! :)");
         break;
       } else {
+        attemps++;
         if(serDebug) Serial.println("No se ha podido publicar");
         isPublished = false;
-        delay(timeDelay*1.5);
+        delay(minTime);
       }
     }
-    delay(minDelay*100);
+    delay(minTime);
     return isPublished;
 }
 
 void setMQTTServer()
 {   
-  __mqttServerConnected = "test.mosquitto.org";
+  if(serverConnectedIndex < count_mqtt_server-1)
+  {
+    serverConnectedIndex++;
+  }
+  else
+  {
+    serverConnectedIndex = 0;
+  }
+  __mqttServerConnected = mqtt_server[serverConnectedIndex];//"broker.mqtt-dashboard.com";
+  if(serDebug) Serial.println("MQTT Server: " + String(__mqttServerConnected));
   mqttClient.setServer(__mqttServerConnected, serverPort);
-  mqttClient.connect(inTopic);
+  mqttClient.setCallback(callback);
 }
 bool mqttIsConnected()
 {
   return mqttClient.connected();
 }
+
+void reconnect() {
+  int attemps = 0;
+  // Loop until we're reconnected
+  while (!mqttIsConnected() && attemps<10) {
+    attemps ++;
+    if(serDebug) Serial.print("reconectando MQTT...");
+    // Create a random client ID
+    String clientId = obtenerIdCliente();
+    // Attempt to connect
+    if (mqttClient.connect(clientId.c_str())) {
+      if(serDebug) Serial.println("Conectado con exito");
+      // Once connected, publish an announcement...
+      mqttClient.publish("testMQTT", "probando estacion metereologica");
+      // ... and resubscribe
+      mqttClient.subscribe(inTopic);
+    } else {
+      if(serDebug) Serial.print("fallo, rc=");
+      if(serDebug) Serial.print(mqttClient.state());
+      if(serDebug) Serial.println(" intentando nuevamente en 5 segundos");
+      // Wait 5 seconds before retrying
+      setMQTTServer();
+      delay(5000);
+    }
+  }
+}
 void callback(char* topic, byte* payload, unsigned int length) {
-  Serial.println("Message arrived [");
+  if(serDebug) Serial.println("Message arrived [");
   if(serDebug) Serial.println(topic);
   if(serDebug) Serial.println("] ");
   for (int i = 0; i < length; i++) {
     if(serDebug)
     {
-      Serial.print((char)payload[i]);
+      if(serDebug) Serial.print((char)payload[i]);
     }
   }
   if(serDebug) Serial.println("");
+}
+String obtenerIdCliente()
+{
+  String clientId = "ESP8266Client-";
+  clientId += String(random(0xffff), HEX);
+  return clientId;
 }

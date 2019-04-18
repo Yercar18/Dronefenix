@@ -15,23 +15,14 @@
 #define inTopic "droneFenix/2/estacion1IN"
 #define wiFiname "AirQ_droneFenix/2/estacion1"
 
-#define count_mqtt_server 3
-#define mqtt_server[3] ["test.mosquitto.org", "iot.eclipse.org", "157.230.174.83"]
-#define serverPort 1883
-
-//Advance mosquitto NO TOUCH
-#define MQTT_CALLBACK_FCTN std::function<void(char*, uint8_t*, unsigned int)> callback
-
-
-
 #define ledWarning led_builtin
 #define chipSelect D4
 #define arduinoTXPin D3
 #define arduinoRXPin D2
 #define arduinoResetPin D1 //pin que comunica con el reset del arduino
 
-#define timeDelay 4*60*1000 // 5 minutos * 60 segundos * 1000 milisegundos
-#define minTime timeDelay/2 //Tiempo minimo para enviar una actualizacion
+#define timeDelay 5*60*1000 // 5 minutos * 60 segundos * 1000 milisegundos
+#define minTime 100 //Tiempo minimo para re-enviar una actualizacion milisegundos
 #define sep ',' //Item separador en los ar
 #define minDelay 10 //delay min for try
 
