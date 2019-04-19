@@ -95,7 +95,7 @@ void loop() {
          int ratio = span>60?span/60:span;
          String unidad = span>60?" minutos":" segundos";
          lastPublishedTime = millis();
-         memoriaSD.saveIntoLogMsg("Mensaje publicado con exito - ratio (Tiempo transcurrido desde la anterior publicacion): " + String(ratio) + unidad , administracion.freeSpaceReportSerial() , WiFiProcess.wifiIsConnected()?"Conectado":"Desconectado", mqttIsConnected()?"Conectado":"Desconectado", false);   
+         memoriaSD.saveIntoLogMsg("Mensaje publicado(" + String(__mqttServerConnected) + ") con exito - ratio (Tiempo transcurrido desde la anterior publicacion): " + String(ratio) + unidad , administracion.freeSpaceReportSerial() , WiFiProcess.wifiIsConnected()?"Conectado":"Desconectado", mqttIsConnected()?"Conectado":"Desconectado", false);   
       }
       else
       {
@@ -116,7 +116,7 @@ boolean publicarInformacion(char JSON[260]){
     bool isPublished = false;
     int attemps = 0;
 
-    while(!isPublished or attemps>=10)
+    while(!isPublished & attemps<=10)
     {
       if (mqttClient.publish(outTopic, JSON) == true) {
         
@@ -127,7 +127,7 @@ boolean publicarInformacion(char JSON[260]){
         break;
       } else {
         attemps++;
-        if(serDebug) Serial.println("No se ha podido publicar");
+        if(serDebug) Serial.println("No se ha podido publicar - intento " + String(attemps));
         isPublished = false;
         delay(minTime);
       }
