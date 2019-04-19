@@ -24,6 +24,7 @@ float latitud, longitud;
 void setup() {
   // put your setup code here, to run once:
   serialportManager.inicializar();  
+  CCSSensor.inicializar();
   DHTSensor.inicializar();
   if(serDebug) Serial.println(CCSSensor.inicializar());
   if(serDebug) Serial.println(bmpSensor.inicializar());
@@ -34,6 +35,9 @@ void setup() {
 
 void loop() {
   // put your main code here, to run repeatedly:
+  
+  CCSSensor.cicloCCS();
+  GPSSensor.smartdelay(timeDelay);
   
   temperatura = DHTSensor.leerTemperatura();
   humedad = DHTSensor.leerHumedad();
@@ -49,12 +53,11 @@ void loop() {
  
   String lecturas = data.procesarData(temperatura, humedad, presionAtmosferica, alcohol, tvoc, co2, metano, NH4, latitud, longitud, fecha);
 
-  if(lecturas!= "")
+  if(lecturas!= "" & CCSSensor.getFlagVal())
   {
     if(serDebug) Serial.println("Se ha enviado la informacion hacia el wemos");
     if(serDebug) Serial.println("Lecturas: " + lecturas);
     serialportManager.enviarWemos(lecturas);
+    CCSSensor.resetFlag();
   }
-  
-  GPSSensor.smartdelay(timeDelay);
 }
