@@ -20,7 +20,7 @@ MEMORY_ADMINISTRATION administracion;
 PINS pinesIO;
 
 static const int count_mqtt_server = 3;
-static char* mqtt_server[count_mqtt_server] = { "test.mosquitto.org", "iot.eclipse.org", "157.230.174.83"};
+static char* mqtt_server[count_mqtt_server] = { "157.230.174.83"};
 char* __mqttServerConnected;
 const int serverPort = 1883;
 int serverConnectedIndex = 0;
