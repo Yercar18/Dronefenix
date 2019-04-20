@@ -23,7 +23,7 @@
 
 #define timeDelay 5*60*1000 // 5 minutos * 60 segundos * 1000 milisegundos
 #define minTime 100 //Tiempo minimo para re-enviar una actualizacion milisegundos
-#define sep ',' //Item separador en los ar
+#define tabulador ',' //Item tabulador
 #define minDelay 10 //delay min for try
 
 #define maxTimeWithNoPublish 30*60*1000 //Si pasan mas de 30 minutos sin publicar es preocupante
@@ -35,6 +35,5 @@
 
 #define initialCharacter "Inicio"
 #define endCharacter "Final"
-#define tabulador "\t"
 
 #endif // CONFIGURATION_H

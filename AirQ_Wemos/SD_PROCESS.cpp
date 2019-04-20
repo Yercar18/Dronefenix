@@ -114,51 +114,41 @@ void SD_PROCESS::guardarEncabezados(){
   Archivo = SD.open(__fileNameAndExtension, FILE_WRITE);  
   if(serDebug) Serial.println("EL ARCHIVO EN LA SD SE LLAMARA: "+__fileNameAndExtension);
     
+    String linea = "";
+    linea += "SEP=" + String(tabulador) + "\r\n";
 
-    Archivo.println("SEP="+sep);
-
-    delay(minDelay);
-    Archivo.print("Temperatura (ºC)");
-    Archivo.print(sep);
+    linea +="Temperatura (ºC)";
+    linea +=String(tabulador);
     
-    delay(minDelay);
-    Archivo.print("Humedad (%)");
-    Archivo.print(sep);
+    linea +="Humedad (%)";
+    linea +=String(tabulador);
 
-    delay(minDelay);
-    Archivo.print("Presion atmosferica (mBar)");
-    Archivo.print(sep);
+    linea +="Presion atmosferica (mBar)";
+    linea +=String(tabulador);
 
-    delay(minDelay);
-    Archivo.print("Alcohol (ppm)");
-    Archivo.print(sep);
+    linea +="Alcohol (ppm)";
+    linea +=String(tabulador);
 
-
-    delay(minDelay);
-    Archivo.print("TVOC (ppm)");
-    Archivo.print(sep);
-
+    linea +="TVOC (ppm)";
+    linea +=String(tabulador);
     
-    delay(minDelay);
-    Archivo.print("CO2 (ppb)");
-    Archivo.print(sep);
+    linea +="CO2 (ppb)";
+    linea +=String(tabulador);
     
-    delay(minDelay);
-    Archivo.print("Gas metano (ppm)");
-    Archivo.print(sep);
+    linea +="Gas metano (ppm)";
+    linea +=String(tabulador);
     
-    delay(minDelay);
-    Archivo.print("latitud");
-    Archivo.print(sep);  
+    linea +="latitud";
+    linea +=String(tabulador);  
 
-    delay(minDelay);
-    Archivo.print("longitud");
-    Archivo.print(sep);
+    linea +="longitud";
+    linea +=String(tabulador);
     
-    delay(minDelay);
-    Archivo.print("Fecha");
-    Archivo.println(sep);
+    linea +="Fecha";
+    linea +=String(tabulador);
     
+    Archivo.println(linea);
     delay(minDelay);
+ 
     Archivo.close();
 }

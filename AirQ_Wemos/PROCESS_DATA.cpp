@@ -2,6 +2,55 @@
 #include <ArduinoJson.h>
 #include "configuration.h"
 
+int PROCESS_DATA::getIndex()
+{
+  return msqQeueCounter;
+}
+void PROCESS_DATA::setTimeToWait(int time)
+{
+  timeWait = time;
+if(serDebug) Serial.println("Tiempo de espera para publicar(minutos): " + String(time));
+}
+
+int PROCESS_DATA::generateRandom()
+{
+  return random(1,20);
+}
+
+void PROCESS_DATA::resetMsgQeueCounter()
+{
+  msqQeueCounter = 1;
+}
+
+String PROCESS_DATA::getJSON(int index)
+{
+  return msqQeue[index];
+}
+
+boolean PROCESS_DATA::SAVEJSON(String JSON)
+{
+    if (serDebug & msqQeueCounter<60) Serial.println("Mensaje guardado - " + String(msqQeueCounter));
+    if (serDebug & msqQeueCounter==60) Serial.println("publicando sesenta topics");
+    
+    unsigned long tiempominutos = (millis()-oldTimeSended)/(60*1000);
+    Serial.println("Tiempo minutos: " + String(tiempominutos));
+    Serial.println("Time to wait: " + String(timeWait));
+
+    if(msqQeueCounter < 60 &  tiempominutos<timeWait)
+    {
+      msqQeue[msqQeueCounter] = JSON; 
+      msqQeueCounter++;
+      return false;
+    }
+    else
+    { 
+      oldTimeSended =  millis();
+      if (serDebug & msqQeueCounter!=60) Serial.println("publicando " + String(msqQeueCounter) + " topics");     
+      return true;
+    }
+}
+
+
 String PROCESS_DATA::ensamblarMensajeJSON(double temp, double hum, double presAlt, double alcoholPPM, double TVOC, double CO2, double Metano, double NH4, float latitud, float longitud, String fecha){
      // Memory pool for JSON object tree.
     //
@@ -101,33 +150,33 @@ bool PROCESS_DATA::procesarInformacion(String Data)
     if(Data.length() >0)
     {
       int valuePointer = 0;
-      String initCharacterReceived = getValueStr(Data,sep,valuePointer);
+      String initCharacterReceived = getValueStr(Data,tabulador,valuePointer);
       valuePointer++;
-      temp = getValueStr(Data,sep,valuePointer).toInt() > 0 ? getValueStr(Data,sep,valuePointer):"0";
+      temp = getValueStr(Data,tabulador,valuePointer).toInt() > 0 ? getValueStr(Data,tabulador,valuePointer):"0";
       valuePointer++;
-      hum = getValueStr(Data,sep,valuePointer).toInt() > 0 ? getValueStr(Data,sep,valuePointer):"0";
+      hum = getValueStr(Data,tabulador,valuePointer).toInt() > 0 ? getValueStr(Data,tabulador,valuePointer):"0";
       valuePointer++;
-      presAt = getValueStr(Data,sep,valuePointer).toInt() > 0 ? getValueStr(Data,sep,valuePointer):"0";
+      presAt = getValueStr(Data,tabulador,valuePointer).toInt() > 0 ? getValueStr(Data,tabulador,valuePointer):"0";
       valuePointer++;
-      alcohol = getValueStr(Data,sep,valuePointer).toInt() > 0 ? getValueStr(Data,sep,valuePointer):"0";
+      alcohol = getValueStr(Data,tabulador,valuePointer).toInt() > 0 ? getValueStr(Data,tabulador,valuePointer):"0";
       valuePointer++;
-      tvoc = getValueStr(Data,sep,valuePointer).toInt() > 0 ? getValueStr(Data,sep,valuePointer):"0";
+      tvoc = getValueStr(Data,tabulador,valuePointer).toInt() > 0 ? getValueStr(Data,tabulador,valuePointer):"0";
       valuePointer++;
-      co2 = getValueStr(Data,sep,valuePointer).toInt() > 0 ? getValueStr(Data,sep,valuePointer):"0";
+      co2 = getValueStr(Data,tabulador,valuePointer).toInt() > 0 ? getValueStr(Data,tabulador,valuePointer):"0";
       valuePointer++;
-      metano = getValueStr(Data,sep,valuePointer).toInt() > 0 ? getValueStr(Data,sep,valuePointer):"0";
+      metano = getValueStr(Data,tabulador,valuePointer).toInt() > 0 ? getValueStr(Data,tabulador,valuePointer):"0";
       valuePointer++;
-      NH4 = abs(getValueStr(Data,sep,valuePointer).toInt()) > 0 ? getValueStr(Data,sep,valuePointer):"0";
+      NH4 = abs(getValueStr(Data,tabulador,valuePointer).toInt()) > 0 ? getValueStr(Data,tabulador,valuePointer):"0";
       valuePointer++;
   
-      latitud = abs(getValueStr(Data,sep,valuePointer).toInt()) > 0 ? getValueStr(Data,sep,valuePointer):"0";
+      latitud = abs(getValueStr(Data,tabulador,valuePointer).toInt()) > 0 ? getValueStr(Data,tabulador,valuePointer):"0";
       valuePointer++;
-      longitud = abs(getValueStr(Data,sep,valuePointer).toInt()) > 0 ? getValueStr(Data,sep,valuePointer):"0";
+      longitud = abs(getValueStr(Data,tabulador,valuePointer).toInt()) > 0 ? getValueStr(Data,tabulador,valuePointer):"0";
       valuePointer++;
-      //fecha = abs(getValueStr(Data,sep,valuePointer).toInt()) > 0 ? getValueStr(Data,sep,valuePointer):"0";
+      //fecha = abs(getValueStr(Data,tabulador,valuePointer).toInt()) > 0 ? getValueStr(Data,tabulador,valuePointer):"0";
       valuePointer++;
       
-      String endCharacterReceived = getValueStr(Data,sep,valuePointer);
+      String endCharacterReceived = getValueStr(Data,tabulador,valuePointer);
       
       if(initCharacterReceived == initialCharacter && endCharacterReceived == endCharacter)
       {
@@ -148,14 +197,14 @@ bool PROCESS_DATA::procesarInformacion(String Data)
     }
 }
 
-bool PROCESS_DATA::getValue(String data, char separator, int index)
+bool PROCESS_DATA::getValue(String data, char tabuladorarator, int index)
 {
     int found = 0;
     int strIndex[] = { 0, -1 };
     int maxIndex = data.length();
 
     for (int i = 0; i <= maxIndex && found <= index; i++) {
-        if (data.charAt(i) == separator || i == maxIndex) {
+        if (data.charAt(i) == tabuladorarator || i == maxIndex) {
             found++;
             strIndex[0] = strIndex[1] + 1;
             strIndex[1] = (i == maxIndex) ? i+1 : i;
@@ -164,14 +213,14 @@ bool PROCESS_DATA::getValue(String data, char separator, int index)
     return found > index ? data.substring(strIndex[0], strIndex[1]).toInt()>=0 : false;
 }
 
-String PROCESS_DATA::getValueStr(String data, char separator, int index)
+String PROCESS_DATA::getValueStr(String data, char tabuladorarator, int index)
 {
     int found = 0;
     int strIndex[] = { 0, -1 };
     int maxIndex = data.length();
 
     for (int i = 0; i <= maxIndex && found <= index; i++) {
-        if (data.charAt(i) == separator || i == maxIndex) {
+        if (data.charAt(i) == tabuladorarator || i == maxIndex) {
             found++;
             strIndex[0] = strIndex[1] + 1;
             strIndex[1] = (i == maxIndex) ? i+1 : i;

@@ -7,8 +7,8 @@ class PROCESS_DATA {
   public:
     void setFecha(String fechaIn);
     bool procesarInformacion(String Data);
-    bool getValue(String data, char separator, int index);
-    String getValueStr(String data, char separator, int index);
+    bool getValue(String data, char tabuladorarator, int index);
+    String getValueStr(String data, char tabuladorarator, int index);
     double stringToDouble(String & str);
     double leerTemperatura();
     double leerHumedad();
@@ -22,9 +22,19 @@ class PROCESS_DATA {
     float leerLongitud();
     double leerFecha();
     String mensajeSDTabulado();
+    boolean SAVEJSON(String JSON);
+    String getJSON(int index);
+    void resetMsgQeueCounter();
+    void setTimeToWait(int time);
+    int generateRandom();
+    int getIndex();
     String ensamblarMensajeJSON(double temp, double hum, double presAlt, double alcoholPPM, double TVOC, double CO2, double Metano, double NH4, float latitud, float longitud, String fecha);
   private:
     String temp, hum, presAt, alcohol,tvoc, co2, metano, NH4,  latitud, longitud, fecha;
+    String msqQeue[60];
+    int msqQeueCounter = 1;
+    int timeWait;
+    unsigned long oldTimeSended;
     
 };
 

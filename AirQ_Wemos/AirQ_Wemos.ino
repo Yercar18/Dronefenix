@@ -20,13 +20,14 @@ MEMORY_ADMINISTRATION administracion;
 PINS pinesIO;
 
 static const int count_mqtt_server = 3;
-static char* mqtt_server[count_mqtt_server] = { "157.230.174.83"};
+static char* mqtt_server[count_mqtt_server] = { "157.230.174.83", "test.mosquitto.org", "157.230.174.83"};
 char* __mqttServerConnected;
 const int serverPort = 1883;
 int serverConnectedIndex = 0;
 
 unsigned long lastPublishedTime = 0;
 unsigned long lastGetPetition = 0;
+
 
 WiFiClient espClient;
 PubSubClient mqttClient(espClient);
@@ -52,6 +53,7 @@ void setup() {
     
     setMQTTServer();
 
+    procesamiento.setTimeToWait(procesamiento.generateRandom());
     memoriaSD.saveIntoLogMsg("Saliendo del setup - Resultado de la peticion: " + resultPetition, administracion.freeSpaceReportSerial() , WiFiProcess.wifiIsConnected()?"Conectado":"Desconectado", mqttIsConnected()?"Conectado":"Desconectado", false);
     
 }
@@ -86,10 +88,36 @@ void loop() {
       float longitud = procesamiento.leerLongitud();
 
       String json2MQTT = procesamiento.ensamblarMensajeJSON(temperatura, humedad, presionAmosferica, alcohol, tvoc, co2, metano, NH4, latitud, longitud, fecha);
-      int len = 260;
-      char buf[len];
-      json2MQTT.toCharArray(buf, len);
-      if(publicarInformacion(buf))
+
+      if(procesamiento.SAVEJSON(json2MQTT))
+      {
+        procesamiento.setTimeToWait(procesamiento.generateRandom());
+        sendMQTTMsgPacket(procesamiento.getIndex());
+      }
+      
+
+    }
+
+    if((millis() - lastPublishedTime)>maxTimeWithNoPublish)  memoriaSD.saveIntoLogMsg("Han pasado " + String(maxTimeWithNoPublish/60000) + " minutos sin enviar actualizaciones" , administracion.freeSpaceReportSerial() , WiFiProcess.wifiIsConnected()?"Conectado":"Desconectado", mqttIsConnected()?"Conectado":"Desconectado", true);   
+    if((millis() -lastGetPetition)>maxTimeWithNoPublish) WiFiProcess.getPetition(URL); //Despertar al servidor haciendo una peticion cada media hora
+    mqttClient.loop();
+}
+void sendMQTTMsgPacket(int countMsgToSend)
+{
+  int len = 260;
+  char buf[len];
+  procesamiento.resetMsgQeueCounter();
+
+  for(int i=0; i<=countMsgToSend; i++)
+  {
+    String mensajeJson = procesamiento.getJSON(i);
+    mensajeJson.toCharArray(buf, len);
+    savePublishStatusMQTT(publicarInformacion(buf));
+  }
+}
+void savePublishStatusMQTT(boolean result)
+{
+  if(result)
       { 
          unsigned long span = (millis() - lastPublishedTime)/1000;
          int ratio = span>60?span/60:span;
@@ -101,15 +129,8 @@ void loop() {
       {
         memoriaSD.saveIntoLogMsg("Mensaje no publicado", administracion.freeSpaceReportSerial() , WiFiProcess.wifiIsConnected()?"Conectado":"Desconectado", mqttIsConnected()?"Conectado":"Desconectado", true);   
       }
-     
-      if(serDebug) Serial.println("json: " + json2MQTT); 
-     
-    }
-
-    if((millis() - lastPublishedTime)>maxTimeWithNoPublish)  memoriaSD.saveIntoLogMsg("Han pasado " + String(maxTimeWithNoPublish/60000) + " minutos sin enviar actualizaciones" , administracion.freeSpaceReportSerial() , WiFiProcess.wifiIsConnected()?"Conectado":"Desconectado", mqttIsConnected()?"Conectado":"Desconectado", true);   
-    if((millis() -lastGetPetition)>maxTimeWithNoPublish) WiFiProcess.getPetition(URL); //Despertar al servidor haciendo una peticion cada media hora
-    mqttClient.loop();
 }
+
 
 boolean publicarInformacion(char JSON[260]){
    
