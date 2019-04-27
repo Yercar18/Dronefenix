@@ -30,7 +30,7 @@
 #define maxNumError 500 //Numero maximo de errrores tolerable antes de causar un reinicio del arduino
 
 
-#define URL "http://airq.dronefenix.a2hosted.com/bot"
+#define URL "http://airq.onmotica.com/bot"
 #define banderaPeticionGet 6 //Maximo de publicaciones al broker antes de llamar a la pagina bot para despertar al hosting en caso que el iis haya apagado el servicio
 
 #define initialCharacter "Inicio"
