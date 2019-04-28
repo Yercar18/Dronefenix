@@ -63,6 +63,7 @@ void loop() {
   
     if(!WiFiProcess.wifiIsConnected()) setup(); //Reinicio si no hay wifi
     if (!mqttIsConnected()) reconnect(); //Reconectar mqtt si perdio conexion
+
     
     String informacion = serial.leerArduino();
     if(procesamiento.procesarInformacion(informacion))
@@ -94,10 +95,9 @@ void loop() {
         procesamiento.setTimeToWait(procesamiento.generateRandom());
         sendMQTTMsgPacket(procesamiento.getIndex());
       }
-      
 
     }
-
+    
     if((millis() - lastPublishedTime)>maxTimeWithNoPublish)  memoriaSD.saveIntoLogMsg("Han pasado " + String(maxTimeWithNoPublish/60000) + " minutos sin enviar actualizaciones" , administracion.freeSpaceReportSerial() , WiFiProcess.wifiIsConnected()?"Conectado":"Desconectado", mqttIsConnected()?"Conectado":"Desconectado", true);   
     if((millis() -lastGetPetition)>maxTimeWithNoPublish) WiFiProcess.getPetition(URL); //Despertar al servidor haciendo una peticion cada media hora
     mqttClient.loop();
@@ -139,7 +139,7 @@ boolean publicarInformacion(char JSON[260]){
 
     while(!isPublished & attemps<=10)
     {
-      if (mqttClient.publish(outTopic, JSON) == true) {
+      if (mqttClient.publish(inTopic, JSON) == true) {
         
         if(serDebug) Serial.println("El mensaje se ha publciado correctamente");
         
@@ -193,7 +193,7 @@ void reconnect() {
       // Once connected, publish an announcement...
       mqttClient.publish("testMQTT", "probando estacion metereologica");
       // ... and resubscribe
-      mqttClient.subscribe(inTopic);
+      mqttClient.subscribe(outTopic);
     } else {
       if(serDebug) Serial.print("fallo, rc=");
       if(serDebug) Serial.print(mqttClient.state());
@@ -206,16 +206,33 @@ void reconnect() {
   }
 }
 void callback(char* topic, byte* payload, unsigned int length) {
-  if(serDebug) Serial.println("Message arrived [");
   if(serDebug) Serial.println(topic);
+  if(serDebug) Serial.println("Message arrived [");
   if(serDebug) Serial.println("] ");
-  for (int i = 0; i < length; i++) {
-    if(serDebug)
+  String strTopic = String(topic);
+  String strOutTopic = String(outTopic);
+  strOutTopic.trim();
+  strTopic.trim();
+  if(serDebug) Serial.println(strTopic.indexOf(strOutTopic));
+  if(strTopic.indexOf(strOutTopic) > 0 || strTopic == strOutTopic)
+  {
+    String mensaje = "";
+    for (int i = 0; i < length; i++) {
+      if(serDebug)
+      {
+        //if(serDebug) Serial.print((char)payload[i]);
+        mensaje +=  (char)payload[i];
+      }
+    }
+    if(serDebug) Serial.println("");
+  
+    mensaje.trim();
+    if(mensaje == "actualizar")
     {
-      if(serDebug) Serial.print((char)payload[i]);
+      if(serDebug) Serial.println("enviando actualizacion");
+      procesamiento.setTimeToWait(0.1);
     }
   }
-  if(serDebug) Serial.println("");
 }
 String obtenerIdCliente()
 {

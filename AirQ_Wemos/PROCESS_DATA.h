@@ -33,7 +33,7 @@ class PROCESS_DATA {
     String temp, hum, presAt, alcohol,tvoc, co2, metano, NH4,  latitud, longitud, fecha;
     String msqQeue[60];
     int msqQeueCounter = 1;
-    int timeWait;
+    float timeWait;
     unsigned long oldTimeSended;
     
 };
