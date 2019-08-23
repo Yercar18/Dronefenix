@@ -51,7 +51,7 @@ boolean PROCESS_DATA::SAVEJSON(String JSON)
 }
 
 
-String PROCESS_DATA::ensamblarMensajeJSON(double temp, double hum, double presAlt, double alcoholPPM, double TVOC, double CO2, double Metano, double NH4, float latitud, float longitud, String fecha){
+String PROCESS_DATA::ensamblarMensajeJSON(double temp, double hum, double presAlt, double alcoholPPM, double TVOC, double CO2, double CH4, double NH4, float latitud, float longitud, String fecha){
      // Memory pool for JSON object tree.
     //
     // Inside the brackets, 200 is the size of the pool in bytes.
@@ -75,7 +75,7 @@ String PROCESS_DATA::ensamblarMensajeJSON(double temp, double hum, double presAl
     root["D4"] = alcoholPPM;  
     root["D5"] = TVOC;  
     root["D6"] = CO2; 
-    root["D7"] = Metano;  
+    root["D7"] = CH4;  
     root["D8"] = NH4;  
 
     
@@ -113,9 +113,9 @@ int PROCESS_DATA::leerCO2()
 {
   return stringToDouble(co2);
 }
-int PROCESS_DATA::leerMetano()
+int PROCESS_DATA::leerCH4()
 {
-  return stringToDouble(metano);
+  return stringToDouble(CH4);
 }
 int PROCESS_DATA::leerNH4()
 {
@@ -136,7 +136,7 @@ double PROCESS_DATA::leerFecha()
 
 String PROCESS_DATA::mensajeSDTabulado()
 {
-  return temp + tabulador + hum + tabulador + presAt + tabulador + alcohol + tabulador +tvoc + tabulador + co2 + tabulador + metano + tabulador + NH4 + tabulador + latitud + tabulador + longitud + tabulador + fecha;
+  return temp + tabulador + hum + tabulador + presAt + tabulador + alcohol + tabulador +tvoc + tabulador + co2 + tabulador + CH4 + tabulador + NH4 + tabulador + latitud + tabulador + longitud + tabulador + fecha;
 }
 void PROCESS_DATA::setFecha(String fechaIn)
 {
@@ -164,7 +164,7 @@ bool PROCESS_DATA::procesarInformacion(String Data)
       valuePointer++;
       co2 = getValueStr(Data,tabulador,valuePointer).toInt() > 0 ? getValueStr(Data,tabulador,valuePointer):"0";
       valuePointer++;
-      metano = getValueStr(Data,tabulador,valuePointer).toInt() > 0 ? getValueStr(Data,tabulador,valuePointer):"0";
+      CH4 = getValueStr(Data,tabulador,valuePointer).toInt() > 0 ? getValueStr(Data,tabulador,valuePointer):"0";
       valuePointer++;
       NH4 = abs(getValueStr(Data,tabulador,valuePointer).toInt()) > 0 ? getValueStr(Data,tabulador,valuePointer):"0";
       valuePointer++;

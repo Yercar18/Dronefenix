@@ -83,12 +83,12 @@ void loop() {
       int tvoc =  procesamiento.leerTVOC();
       int co2 = procesamiento.leerCO2();
       int alcohol = procesamiento.leerAlcohol();
-      int metano = procesamiento.leerMetano();
+      int CH4 = procesamiento.leerCH4();
       int NH4 = procesamiento.leerNH4();
       float latitud = procesamiento.leerLatitud();
       float longitud = procesamiento.leerLongitud();
 
-      String json2MQTT = procesamiento.ensamblarMensajeJSON(temperatura, humedad, presionAmosferica, alcohol, tvoc, co2, metano, NH4, latitud, longitud, fecha);
+      String json2MQTT = procesamiento.ensamblarMensajeJSON(temperatura, humedad, presionAmosferica, alcohol, tvoc, co2, CH4, NH4, latitud, longitud, fecha);
 
       if(procesamiento.SAVEJSON(json2MQTT))
       {

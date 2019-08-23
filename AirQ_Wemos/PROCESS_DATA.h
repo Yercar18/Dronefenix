@@ -15,7 +15,7 @@ class PROCESS_DATA {
     double leerPresionAtmosferica();
     int leerTVOC();
     int leerCO2();
-    int leerMetano();
+    int leerCH4();
     int leerAlcohol();
     int leerNH4();
     float leerLatitud();
@@ -28,9 +28,9 @@ class PROCESS_DATA {
     void setTimeToWait(int time);
     int generateRandom();
     int getIndex();
-    String ensamblarMensajeJSON(double temp, double hum, double presAlt, double alcoholPPM, double TVOC, double CO2, double Metano, double NH4, float latitud, float longitud, String fecha);
+    String ensamblarMensajeJSON(double temp, double hum, double presAlt, double alcoholPPM, double TVOC, double CO2, double CH4, double NH4, float latitud, float longitud, String fecha);
   private:
-    String temp, hum, presAt, alcohol,tvoc, co2, metano, NH4,  latitud, longitud, fecha;
+    String temp, hum, presAt, alcohol,tvoc, co2, CH4, NH4,  latitud, longitud, fecha;
     String msqQeue[60];
     int msqQeueCounter = 1;
     float timeWait;
