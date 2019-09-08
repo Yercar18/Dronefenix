@@ -5,7 +5,7 @@
 
 class PROCESS_DATA {
   public:
-    String procesarData(double temperatura, double humedad, double presionAtmosferica, int alcohol, int tvoc, int co2, int CH4, int NH4, float latitud, float longitud, double fecha);
+    String procesarData(double temperatura, double humedad, double presionAtmosferica, double alcohol, int tvoc, int co2, int CH4, int NH4, float latitud, float longitud, double fecha);
   private:
     double __temperatura, __humedad, __presionAtmosferica, __fecha;
     int __alcohol, __tvoc, __CH4, __NH4, __co2;

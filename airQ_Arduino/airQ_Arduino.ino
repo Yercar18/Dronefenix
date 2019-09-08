@@ -16,8 +16,8 @@ SERIAL_COMMUNICATION serialportManager;
 MQUnifiedsensor MQ4(MQ4Pin, 4);
 MQUnifiedsensor MQ135(MQ135Pin, 135);
 
-double temperatura, humedad, presionAtmosferica, fecha;
-int alcohol, tvoc, co2, CH4, NH4;
+double alcohol,temperatura, humedad, presionAtmosferica, fecha;
+int  tvoc, co2, CH4, NH4;
 float latitud, longitud;
 
 void setup() {
@@ -51,7 +51,7 @@ void loop() {
   latitud = GPSSensor.leerLatitud();
   longitud = GPSSensor.leerLongitud();
   fecha = GPSSensor.leerFecha();
- 
+
   String lecturas = data.procesarData(temperatura, humedad, presionAtmosferica, alcohol, tvoc, co2, CH4, NH4, latitud, longitud, fecha);
 
   if(lecturas!= "" & CCSSensor.getFlagVal())

@@ -1,7 +1,7 @@
 #include "PROCESS_DATA.h"
 #include "configuration.h"
 
-String PROCESS_DATA::procesarData(double temperatura, double humedad, double presionAtmosferica, int alcohol, int tvoc, int co2, int CH4, int NH4, float latitud, float longitud, double fecha)
+String PROCESS_DATA::procesarData(double temperatura, double humedad, double presionAtmosferica, double alcohol, int tvoc, int co2, int CH4, int NH4, float latitud, float longitud, double fecha)
 {
   int deltaTemp = abs(__temperatura - temperatura);
   int deltaHum = abs(__humedad - humedad);
