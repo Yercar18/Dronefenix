@@ -147,11 +147,14 @@ bool PROCESS_DATA::procesarInformacion(String Data)
     //Elimniar espacios en blanco
     Data.trim();
 
-    if(Data.length() >0)
+    if(Data.length() >10)
     {
       int valuePointer = 0;
-      String initCharacterReceived = getValueStr(Data,tabulador,valuePointer);
-      valuePointer++;
+      String initCharacterReceived = "";
+      while(initCharacterReceived!=initialCharacter && valuePointer<=5){
+        initCharacterReceived = getValueStr(Data,tabulador,valuePointer);
+        valuePointer++;
+      }
       temp = getValueStr(Data,tabulador,valuePointer).toInt() > 0 ? getValueStr(Data,tabulador,valuePointer):"0";
       valuePointer++;
       hum = getValueStr(Data,tabulador,valuePointer).toInt() > 0 ? getValueStr(Data,tabulador,valuePointer):"0";
@@ -178,7 +181,7 @@ bool PROCESS_DATA::procesarInformacion(String Data)
       
       String endCharacterReceived = getValueStr(Data,tabulador,valuePointer);
       
-      if(initCharacterReceived == initialCharacter && endCharacterReceived == endCharacter)
+      if(strcmp(initCharacterReceived.c_str(), initialCharacter)>=0 && strcmp(endCharacterReceived.c_str(), endCharacter)>=0)
       {
         if(serDebug) Serial.println("La informacion leida es valida");
         return true;
@@ -187,6 +190,8 @@ bool PROCESS_DATA::procesarInformacion(String Data)
       {
         if(serDebug) Serial.print("Data invalida - ");
         if(serDebug) Serial.println("Caracter de inicio: " + initCharacterReceived + " caracter de fin: " + endCharacterReceived);
+        if(serDebug) Serial.println("Comparacion de string de  inicio: " + String(strcmp(initCharacterReceived.c_str(), initialCharacter)));
+        if(serDebug) Serial.println("Comparacion de string de  Final: " + String(strcmp(endCharacterReceived.c_str(), endCharacter)));
         return false;
       }
     }

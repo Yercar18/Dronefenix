@@ -64,7 +64,6 @@ void loop() {
     if(!WiFiProcess.wifiIsConnected()) setup(); //Reinicio si no hay wifi
     if (!mqttIsConnected()) reconnect(); //Reconectar mqtt si perdio conexion
 
-    
     String informacion = serial.leerArduino();
     if(procesamiento.procesarInformacion(informacion))
     {
