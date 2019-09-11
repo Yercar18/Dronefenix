@@ -37,7 +37,7 @@ void SD_PROCESS::inicializar(){
   String fileName = String(defaultFileName+__defaultFileCounter+defaultFileExtension);
   int contadorSDFiles = 0;
   
-  while(SD.exists(fileName) & (contadorSDFiles<100)){
+  while(SD.exists(fileName) & (contadorSDFiles<maxExcelAllowedInSDCard)){
     __defaultFileCounter +=1;  
     fileName = String(defaultFileName+__defaultFileCounter+defaultFileExtension);
     Serial.println("EXISTE: "+ fileName);
@@ -45,17 +45,17 @@ void SD_PROCESS::inicializar(){
     contadorSDFiles += 1;
     }
     Serial.println("Numero de archivos: " + String(contadorSDFiles));
-    if(contadorSDFiles >= 100)
+    if(contadorSDFiles >= maxExcelAllowedInSDCard)
     {
       __defaultFileCounter = 0;
       //Clean sd
-      for(int i = 0; i<=100 ; i++)
+      for(int i = 0; i<=maxExcelAllowedInSDCard-1 ; i++)
       {
           __defaultFileCounter +=1; 
           fileName = defaultFileName+__defaultFileCounter+defaultFileExtension;
           SD.remove(fileName);
           Serial.println("Eliminado = " + String(fileName));
-          delay(timeDelay/20);
+          delay(minDelay);
       }
     }
     __fileNameAndExtension = fileName;

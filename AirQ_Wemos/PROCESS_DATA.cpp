@@ -51,7 +51,7 @@ boolean PROCESS_DATA::SAVEJSON(String JSON)
 }
 
 
-String PROCESS_DATA::ensamblarMensajeJSON(double temp, double hum, double presAlt, double alcoholPPM, double TVOC, double CO2, double CH4, double NH4, float latitud, float longitud, String fecha){
+String PROCESS_DATA::ensamblarMensajeJSON(int temp, int hum, int presAlt, int alcoholPPM, int TVOC, int CO2, int CH4, int NH4, float latitud, float longitud, String fecha){
      // Memory pool for JSON object tree.
     //
     // Inside the brackets, 200 is the size of the pool in bytes.
@@ -72,15 +72,14 @@ String PROCESS_DATA::ensamblarMensajeJSON(double temp, double hum, double presAl
     root["D1"] = temp;  
     root["D2"] = hum; 
     root["D3"] = presAlt;  
-    root["D4"] = alcoholPPM;  
+    root["D4"] = alcoholPPM>1000?1000:NH4;  //From MQ4 Datasheet
     root["D5"] = TVOC;  
     root["D6"] = CO2; 
     root["D7"] = CH4;  
-    root["D8"] = NH4;  
-
-    
-    root["D9"] =  latitud; 
-    root["D10"] = longitud; 
+    root["D8"] = NH4>1000?1000:NH4;  //From MQ4 Datasheet
+        
+    root["D9"] =  latitud>0?String(latitud,5):"0"; 
+    root["D10"] = longitud>0?String(longitud,5):"0"; 
     root["D11"] = fecha;
         
     char JSONmessageBuffer[260];

@@ -28,7 +28,7 @@ class PROCESS_DATA {
     void setTimeToWait(int time);
     int generateRandom();
     int getIndex();
-    String ensamblarMensajeJSON(double temp, double hum, double presAlt, double alcoholPPM, double TVOC, double CO2, double CH4, double NH4, float latitud, float longitud, String fecha);
+    String ensamblarMensajeJSON(int temp, int hum, int presAlt, int alcoholPPM, int TVOC, int CO2, int CH4, int NH4, float latitud, float longitud, String fecha);
   private:
     String temp, hum, presAt, alcohol,tvoc, co2, CH4, NH4,  latitud, longitud, fecha;
     String msqQeue[60];

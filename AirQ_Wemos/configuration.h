@@ -30,8 +30,9 @@
 #define maxNumError 500 //Numero maximo de errrores tolerable antes de causar un reinicio del arduino
 
 
-#define URL "http://airq.onmotica.com/bot"
+#define URL "http://www.onmotica.com"
 #define banderaPeticionGet 6 //Maximo de publicaciones al broker antes de llamar a la pagina bot para despertar al hosting en caso que el iis haya apagado el servicio
+#define maxExcelAllowedInSDCard 50 //Cantidad de archivos excel en la SD
 
 #define initialCharacter "Inicio"
 #define endCharacter "Final"

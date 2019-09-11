@@ -88,7 +88,7 @@ void loop() {
       float longitud = procesamiento.leerLongitud();
 
       String json2MQTT = procesamiento.ensamblarMensajeJSON(temperatura, humedad, presionAmosferica, alcohol, tvoc, co2, CH4, NH4, latitud, longitud, fecha);
-
+      
       if(procesamiento.SAVEJSON(json2MQTT))
       {
         procesamiento.setTimeToWait(procesamiento.generateRandom());
@@ -106,9 +106,8 @@ void sendMQTTMsgPacket(int countMsgToSend)
   int len = 260;
   char buf[len];
   procesamiento.resetMsgQeueCounter();
-
   for(int i=0; i<=countMsgToSend; i++)
-  {
+  {    
     String mensajeJson = procesamiento.getJSON(i);
     mensajeJson.toCharArray(buf, len);
     savePublishStatusMQTT(publicarInformacion(buf));
@@ -138,16 +137,15 @@ boolean publicarInformacion(char JSON[260]){
 
     while(!isPublished & attemps<=10)
     {
-      if (mqttClient.publish(inTopic, JSON) == true) {
-        
-        if(serDebug) Serial.println("El mensaje se ha publciado correctamente");
-        
+      if (mqttClient.publish(inTopic, JSON) == true) {        
         isPublished = true;
+        if(serDebug) Serial.println("El mensaje se ha publciado correctamente");        
         if(serDebug) Serial.println("Publicado!!! :)");
         break;
       } else {
         attemps++;
         if(serDebug) Serial.println("No se ha podido publicar - intento " + String(attemps));
+        if(serDebug) Serial.println("Mensaje no publicado: " + String(JSON));
         isPublished = false;
         delay(minTime);
       }
