@@ -25,7 +25,6 @@
 * [Getting Started](#Getting-Started)
 * [List of Materials](#Materials)
 * [Authors](#Authors)
-* [Partners](#Partners)
 
 # Getting Started
 
