@@ -18,6 +18,31 @@
 - Powered by arduino
 [![N|Solid](https://www.arduino.cc/en/uploads/Trademark/ArduinoCommunityLogo.png)](https://arduino.cc)
 
+
+<!-- TABLE OF CONTENTS -->
+## Table of Contents
+
+* [Getting Started](#Getting-Started)
+* [List of Materials](#Materials)
+* [Authors](#TEAM)
+* [Partners](#Partners)
+
+# Getting Started
+
+The steps to do this project is:
+
+1. Adquire the materials (Includes the PCB or breadboard and wires).
+
+2. Assembly the station [view schematic here](https://easyeda.com/miguelangelcu/dron_fenix) or [PCB]().
+
+4. Install the [libraries](https://github.com/Yercar18/Dronefenix/tree/master/Librerias) [tutorial](https://www.youtube.com/watch?v=jMSic83Prs8).
+
+3. Program the [arduino pro mini](https://github.com/Yercar18/Dronefenix/tree/master/airQ_Arduino) and [wemos d1](https://github.com/Yercar18/Dronefenix/tree/master/AirQ_Wemos).
+
+5. Create the account on the [onmotica site](www.onmotica.com).
+
+6. Have Fun, give us a start and share this project on your social networks, thanks!.
+
 # Materials
 | Name | Provider | Pricing (COP) |
 | ------------- | ------------- |  ------------- |
