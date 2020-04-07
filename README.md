@@ -35,13 +35,15 @@ The steps to do this project is:
 
 2. Assembly the station [view schematic here](https://easyeda.com/miguelangelcu/dron_fenix) or [PCB]().
 
-4. Install the [libraries](https://github.com/Yercar18/Dronefenix/tree/master/Librerias) [tutorial](https://www.youtube.com/watch?v=jMSic83Prs8).
+3. Install the [libraries](https://github.com/Yercar18/Dronefenix/tree/master/Librerias) [tutorial](https://www.youtube.com/watch?v=jMSic83Prs8).
 
-3. Program the [arduino pro mini](https://github.com/Yercar18/Dronefenix/tree/master/airQ_Arduino) and [wemos d1](https://github.com/Yercar18/Dronefenix/tree/master/AirQ_Wemos).
+4. Program the [arduino pro mini](https://github.com/Yercar18/Dronefenix/tree/master/airQ_Arduino) and [wemos d1](https://github.com/Yercar18/Dronefenix/tree/master/AirQ_Wemos).
 
-5. Create the account on the [onmotica site](www.onmotica.com).
+5. Print your customized [case](https://github.com/Yercar18/Dronefenix/tree/master/case_3dPrinted).
 
-6. Have Fun, give us a start and share this project on your social networks, thanks!.
+6. Create the account on the [onmotica site](www.onmotica.com).
+
+7. Have Fun, give us a start and share this project on your social networks, thanks!.
 
 # Materials
 | Name | Provider | Pricing (COP) |
