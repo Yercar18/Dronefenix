@@ -35,7 +35,7 @@ The steps to do this project is:
 
 2. Assembly the station [view schematic here](https://easyeda.com/miguelangelcu/dron_fenix) or [PCB]().
 
-3. Install the [libraries](https://github.com/Yercar18/Dronefenix/tree/master/Librerias) [tutorial](https://www.youtube.com/watch?v=jMSic83Prs8).
+3. Install the [libraries](https://github.com/Yercar18/Dronefenix/tree/master/Librerias) -  [(how to) tutorial clicking here](https://www.youtube.com/watch?v=jMSic83Prs8).
 
 4. Program the [arduino pro mini](https://github.com/Yercar18/Dronefenix/tree/master/airQ_Arduino) and [wemos d1](https://github.com/Yercar18/Dronefenix/tree/master/AirQ_Wemos).
 
