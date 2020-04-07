@@ -24,7 +24,7 @@
 
 * [Getting Started](#Getting-Started)
 * [List of Materials](#Materials)
-* [Authors](#TEAM)
+* [Authors](#Authors)
 * [Partners](#Partners)
 
 # Getting Started
@@ -116,7 +116,7 @@ Install the libraries.
 To install a new library into your Arduino IDE you can use the Library Manager (available from IDE version 1.6.2).
 Open the IDE and click to the "Sketch" menu and then Include Library > Manage Libraries.
 
-# Autors
+# Authors
 * **Miguel A. Califa U.** - [*GitHub*](https://github.com/miguel5612) - [CV](https://scienti.colciencias.gov.co/cvlac/visualizador/generarCurriculoCv.do?cod_rh=0000050477)
 * **Yersson Ramiro Carrillo Amado** - [*GitHub*](https://github.com/yercar18) - [CV](https://scienti.colciencias.gov.co/cvlac/visualizador/generarCurriculoCv.do?cod_rh=0001637655)
 
