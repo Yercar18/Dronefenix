@@ -36,7 +36,7 @@
 //Tiempos de espera..
 #define timeDelay 500
 #define limit 10 //rango -- entre 6 y 12
-#define limitTime 5*60*1000 // 5 minutos en milisegundos
+#define limitTime 10*1000 // 5 minutos en milisegundos
 
 
 #endif // CONFIGURATION_H

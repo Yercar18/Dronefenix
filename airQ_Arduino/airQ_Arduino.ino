@@ -25,8 +25,8 @@ SERIAL_COMMUNICATION serialportManager;
 MQUnifiedsensor MQ4(Board, Voltage_Resolution, ADC_Bit_Resolution, MQ4Pin, Type);
 MQUnifiedsensor MQ135(Board, Voltage_Resolution, ADC_Bit_Resolution, MQ135Pin, Type);
 
-double alcohol,temperatura, humedad, presionAtmosferica, fecha;
-int  tvoc, co2, CH4, NH4;
+double alcohol, fecha;
+int  CH4, NH4;
 float latitud, longitud;
 
 void setup() {
@@ -75,8 +75,8 @@ void setup() {
   MQ135.setR0(calcR02/10);
   Serial.println("  done!.");
   
-  if(isinf(calcR0)) {Serial.println("Warning: Conection issue founded, R0 is infite (Open circuit detected) please check your wiring and supply"); while(1);}
-  if(calcR0 == 0){Serial.println("Warning: Conection issue founded, R0 is zero (Analog pin with short circuit to ground) please check your wiring and supply"); while(1);}
+  //if(isinf(calcR0)) {Serial.println("Warning: Conection issue founded, R0 is infite (Open circuit detected) please check your wiring and supply"); while(1);}
+  //if(calcR0 == 0){Serial.println("Warning: Conection issue founded, R0 is zero (Analog pin with short circuit to ground) please check your wiring and supply"); while(1);}
   /*****************************  MQ CAlibration ********************************************/ 
 
   
@@ -91,28 +91,33 @@ void loop() {
   MQ4.update();  // Update data, the arduino will be read the voltaje in the analog pin
   MQ135.update(); // Update data, the arduino will be read the voltaje in the analog pin
   
-  temperatura = DHTSensor.leerTemperatura();
-  humedad = DHTSensor.leerHumedad();
-  presionAtmosferica = bmpSensor.leerPresionAtmosferica();
   MQ4.setA(60000000000); MQ4.setB(-14.01); // Configurate the ecuation values to get Alcohol concentration
   alcohol = MQ4.readSensor();
-  tvoc =  CCSSensor.medirTVOC();
-  co2 = CCSSensor.medirCO2();
   MQ4.setA(1012.7); MQ4.setB(-2.786); // Configurate the ecuation values to get CH4 concentration
   CH4 = MQ4.readSensor();
   MQ135.setA(102.2 ); MQ135.setB(-2.473); // Configurate the ecuation values to get NH4 concentration
   NH4 =   MQ135.readSensor();
-  latitud = GPSSensor.leerLatitud();
-  longitud = GPSSensor.leerLongitud();
-  fecha = GPSSensor.leerFecha();
-
-  String lecturas = data.procesarData(temperatura, humedad, presionAtmosferica, alcohol, tvoc, co2, CH4, NH4, latitud, longitud, fecha);
+  String lecturas = data.procesarData(
+    DHTSensor.leerTemperatura()
+  , DHTSensor.leerHumedad()
+  , bmpSensor.leerPresionAtmosferica()
+  , alcohol
+  , CCSSensor.medirTVOC()
+  , CCSSensor.medirCO2()
+  , CH4
+  , NH4
+  , GPSSensor.leerLatitud(), GPSSensor.leerLongitud(),
+  GPSSensor.leerFecha());
 
   if(lecturas!= "" & CCSSensor.getFlagVal())
   {
     if(serDebug) Serial.println("Se ha enviado la informacion hacia el wemos");
-    if(serDebug) Serial.println("Lecturas: " + lecturas);
+    if(serDebug) Serial.print("Lecturas: "); Serial.println(lecturas);
     serialportManager.enviarWemos(lecturas);
     CCSSensor.resetFlag();
+  }
+  else
+  {
+    if(serDebug) Serial.print("Error de lectura - No se ha enviado al wemos: "); Serial.println(lecturas);
   }
 }
